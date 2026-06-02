@@ -6,6 +6,6 @@ edition = "2024"
 [dependencies]
 sdl3 = {
     version = "0.18.3",
-    features = ["build-from-source-static", "image"]
+    features = ["build-from-source-static"]
 }
 wgpu = "29.0.3"
