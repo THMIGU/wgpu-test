@@ -596,6 +596,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19f132c84eca552bf34cab8ec81f1c1dcc229b811638f9d283dceabe58c5569e"
 
 [[package]]
+name = "pollster"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f3a9f18d041e6d0e102a0a46750538147e5e8992d3b4873aaafee2520b00ce3"
+
+[[package]]
 name = "portable-atomic"
 version = "1.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -711,6 +717,8 @@ checksum = "25bd22eb1bbc9137e914022b4994ed35591eea0884e9e3e98e6d9895cad6e1d2"
 dependencies = [
  "bitflags",
  "libc",
+ "objc2",
+ "raw-window-handle",
  "sdl3-image-sys",
  "sdl3-mixer-sys",
  "sdl3-sys",
@@ -1154,6 +1162,7 @@ dependencies = [
 name = "wgpu-test"
 version = "0.1.0"
 dependencies = [
+ "pollster",
  "sdl3",
  "wgpu",
 ]
