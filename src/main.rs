@@ -79,6 +79,43 @@ fn main() {
 
 	surface.configure(&device, &config);
 
+	let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+		label: Some("Triangle Shader"),
+		source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/shader.wgsl").into()),
+	});
+
+	let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+		label: Some("Pipeline Layout"),
+		bind_group_layouts: &[],
+		immediate_size: 0,
+	});
+
+	let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+		label: Some("Triangle Pipeline"),
+		layout: Some(&pipeline_layout),
+		vertex: wgpu::VertexState {
+			module: &shader,
+			entry_point: Some("vs_main"),
+			buffers: &[],
+			compilation_options: Default::default(),
+		},
+		fragment: Some(wgpu::FragmentState {
+			module: &shader,
+			entry_point: Some("fs_main"),
+			compilation_options: Default::default(),
+			targets: &[Some(wgpu::ColorTargetState {
+				format: surface_format,
+				blend: Some(wgpu::BlendState::REPLACE),
+				write_mask: wgpu::ColorWrites::ALL,
+			})],
+		}),
+		primitive: Default::default(),
+		depth_stencil: None,
+		multisample: Default::default(),
+		multiview_mask: None,
+		cache: None,
+	});
+
 	// ========================================
 
 	let mut last_frame = Instant::now();
@@ -128,7 +165,7 @@ fn main() {
 		});
 
 		{
-			let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+			let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
 				label: Some("Render Pass"),
 				color_attachments: &[Some(wgpu::RenderPassColorAttachment {
 					view: &view,
@@ -149,6 +186,9 @@ fn main() {
 				timestamp_writes: None,
 				multiview_mask: None,
 			});
+
+			render_pass.set_pipeline(&render_pipeline);
+			render_pass.draw(0..3, 0..1);
 		}
 
 		queue.submit(Some(encoder.finish()));
