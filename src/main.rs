@@ -2,9 +2,13 @@
 
 mod fps;
 
+use bytemuck::{Pod, Zeroable};
 use sdl3::event::Event;
 use std::time::{Duration, Instant};
-use wgpu::rwh::{HasDisplayHandle, HasWindowHandle};
+use wgpu::{
+	rwh::{HasDisplayHandle, HasWindowHandle},
+	util::DeviceExt,
+};
 
 use crate::fps::FPS;
 
@@ -12,6 +16,32 @@ const TICK_RATE: f64 = 60_f64;
 
 const WINDOW_WIDTH: u32 = 800;
 const WINDOW_HEIGHT: u32 = 600;
+
+#[repr(C)]
+#[derive(Clone, Copy, Pod, Zeroable)]
+struct Vertex {
+	position: [f32; 2],
+}
+
+impl Vertex {
+	fn new(x: f32, y: f32) -> Self {
+		Self {
+			position: [x, y],
+		}
+	}
+
+	fn desc() -> wgpu::VertexBufferLayout<'static> {
+		wgpu::VertexBufferLayout {
+			array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
+			step_mode: wgpu::VertexStepMode::Vertex,
+			attributes: &[wgpu::VertexAttribute {
+				offset: 0,
+				shader_location: 0,
+				format: wgpu::VertexFormat::Float32x2,
+			}],
+		}
+	}
+}
 
 fn main() {
 	let sdl_context = sdl3::init().unwrap();
@@ -96,7 +126,7 @@ fn main() {
 		vertex: wgpu::VertexState {
 			module: &shader,
 			entry_point: Some("vs_main"),
-			buffers: &[],
+			buffers: &[Vertex::desc()],
 			compilation_options: Default::default(),
 		},
 		fragment: Some(wgpu::FragmentState {
@@ -114,6 +144,13 @@ fn main() {
 		multisample: Default::default(),
 		multiview_mask: None,
 		cache: None,
+	});
+
+	let vertices = [Vertex::new(0_f32, 0.5), Vertex::new(-0.5, -0.5), Vertex::new(0.5, -0.5)];
+	let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+		label: Some("Vertex Buffer"),
+		contents: bytemuck::cast_slice(&vertices),
+		usage: wgpu::BufferUsages::VERTEX,
 	});
 
 	// ========================================
@@ -188,6 +225,8 @@ fn main() {
 			});
 
 			render_pass.set_pipeline(&render_pipeline);
+			render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+
 			render_pass.draw(0..3, 0..1);
 		}
 
