@@ -156,14 +156,22 @@ fn main() {
 	});
 
 	let vertices = [
-		Vertex::new(0_f32, 0.5, 1_f32, 0_f32, 0_f32),
-		Vertex::new(-0.5, -0.5, 0_f32, 1_f32, 0_f32),
-		Vertex::new(0.5, -0.5, 0_f32, 0_f32, 1_f32),
+		Vertex::new(-0.5, 0.5, 1_f32, 0_f32, 0_f32),  // top left
+		Vertex::new(0.5, 0.5, 0_f32, 1_f32, 0_f32),   // top right
+		Vertex::new(-0.5, -0.5, 0_f32, 0_f32, 1_f32), // bottom left
+		Vertex::new(0.5, -0.5, 1_f32, 1_f32, 0_f32),  // bottom right
 	];
+	let indices: [u16; 6] = [0, 1, 2, 1, 3, 2];
+
 	let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
 		label: Some("Vertex Buffer"),
 		contents: bytemuck::cast_slice(&vertices),
 		usage: wgpu::BufferUsages::VERTEX,
+	});
+	let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+		label: Some("Index Buffer"),
+		contents: bytemuck::cast_slice(&indices),
+		usage: wgpu::BufferUsages::INDEX,
 	});
 
 	// ========================================
@@ -236,11 +244,12 @@ fn main() {
 				timestamp_writes: None,
 				multiview_mask: None,
 			});
-
 			render_pass.set_pipeline(&render_pipeline);
-			render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
 
-			render_pass.draw(0..3, 0..1);
+			render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+			render_pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+
+			render_pass.draw_indexed(0..6, 0, 0..1);
 		}
 
 		queue.submit(Some(encoder.finish()));

@@ -10,9 +10,12 @@ struct VertexOutput {
 
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
+	var aspect = 3.0 / 4.0;
 	var out: VertexOutput;
 
-	out.position = vec4<f32>(input.position, 0.0, 1.0);
+	out.position = vec4<f32>(
+		input.position.x * aspect, input.position.y, 0.0, 1.0
+	);
 	out.color = input.color;
 
 	return out;
