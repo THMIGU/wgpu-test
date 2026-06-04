@@ -21,12 +21,14 @@ const WINDOW_HEIGHT: u32 = 600;
 #[derive(Clone, Copy, Pod, Zeroable)]
 struct Vertex {
 	position: [f32; 2],
+	color: [f32; 3],
 }
 
 impl Vertex {
-	fn new(x: f32, y: f32) -> Self {
+	fn new(x: f32, y: f32, r: f32, g: f32, b: f32) -> Self {
 		Self {
 			position: [x, y],
+			color: [r, g, b],
 		}
 	}
 
@@ -34,11 +36,18 @@ impl Vertex {
 		wgpu::VertexBufferLayout {
 			array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
 			step_mode: wgpu::VertexStepMode::Vertex,
-			attributes: &[wgpu::VertexAttribute {
-				offset: 0,
-				shader_location: 0,
-				format: wgpu::VertexFormat::Float32x2,
-			}],
+			attributes: &[
+				wgpu::VertexAttribute {
+					offset: 0,
+					shader_location: 0,
+					format: wgpu::VertexFormat::Float32x2,
+				},
+				wgpu::VertexAttribute {
+					offset: 8,
+					shader_location: 1,
+					format: wgpu::VertexFormat::Float32x3,
+				},
+			],
 		}
 	}
 }
@@ -146,7 +155,11 @@ fn main() {
 		cache: None,
 	});
 
-	let vertices = [Vertex::new(0_f32, 0.5), Vertex::new(-0.5, -0.5), Vertex::new(0.5, -0.5)];
+	let vertices = [
+		Vertex::new(0_f32, 0.5, 1_f32, 0_f32, 0_f32),
+		Vertex::new(-0.5, -0.5, 0_f32, 1_f32, 0_f32),
+		Vertex::new(0.5, -0.5, 0_f32, 0_f32, 1_f32),
+	];
 	let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
 		label: Some("Vertex Buffer"),
 		contents: bytemuck::cast_slice(&vertices),
@@ -210,7 +223,7 @@ fn main() {
 					depth_slice: None,
 					ops: wgpu::Operations {
 						load: wgpu::LoadOp::Clear(wgpu::Color {
-							r: 1_f64,
+							r: 0_f64,
 							g: 0_f64,
 							b: 0_f64,
 							a: 1_f64,
