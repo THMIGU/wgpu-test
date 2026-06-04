@@ -1,8 +1,9 @@
-#![windows_subsystem = "windows"]
+// #![windows_subsystem = "windows"]
 
 mod fps;
 
 use bytemuck::{Pod, Zeroable};
+use glam::{Mat4, Vec3};
 use sdl3::event::Event;
 use std::time::{Duration, Instant};
 use wgpu::{
@@ -17,17 +18,19 @@ const TICK_RATE: f64 = 60_f64;
 const WINDOW_WIDTH: u32 = 800;
 const WINDOW_HEIGHT: u32 = 600;
 
+const FOV: f32 = 70_f32.to_radians();
+
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 struct Vertex {
-	position: [f32; 2],
+	position: [f32; 3],
 	color: [f32; 3],
 }
 
 impl Vertex {
-	fn new(x: f32, y: f32, r: f32, g: f32, b: f32) -> Self {
+	fn new(x: f32, y: f32, z: f32, r: f32, g: f32, b: f32) -> Self {
 		Self {
-			position: [x, y],
+			position: [x, y, z],
 			color: [r, g, b],
 		}
 	}
@@ -40,10 +43,10 @@ impl Vertex {
 				wgpu::VertexAttribute {
 					offset: 0,
 					shader_location: 0,
-					format: wgpu::VertexFormat::Float32x2,
+					format: wgpu::VertexFormat::Float32x3,
 				},
 				wgpu::VertexAttribute {
-					offset: 8,
+					offset: 12,
 					shader_location: 1,
 					format: wgpu::VertexFormat::Float32x3,
 				},
@@ -55,13 +58,13 @@ impl Vertex {
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 struct Uniforms {
-	offset: [f32; 2],
+	mvp: [[f32; 4]; 4],
 }
 
 impl Uniforms {
-	fn new(x: f32, y: f32) -> Self {
+	fn new(mvp: [[f32; 4]; 4]) -> Self {
 		Self {
-			offset: [x, y],
+			mvp,
 		}
 	}
 }
@@ -133,13 +136,22 @@ fn main() {
 	surface.configure(&device, &config);
 
 	let vertices = [
-		Vertex::new(-0.5, 0.5, 1_f32, 0_f32, 0_f32),  // top left
-		Vertex::new(0.5, 0.5, 0_f32, 1_f32, 0_f32),   // top right
-		Vertex::new(-0.5, -0.5, 0_f32, 0_f32, 1_f32), // bottom left
-		Vertex::new(0.5, -0.5, 1_f32, 1_f32, 0_f32),  // bottom right
+		Vertex::new(-0.5, 0.5, 0_f32, 1_f32, 0_f32, 0_f32), // top left
+		Vertex::new(0.5, 0.5, 0_f32, 0_f32, 1_f32, 0_f32),  // top right
+		Vertex::new(-0.5, -0.5, 0_f32, 0_f32, 0_f32, 1_f32), // bottom left
+		Vertex::new(0.5, -0.5, 0_f32, 1_f32, 1_f32, 0_f32), // bottom right
 	];
 	let indices: [u16; 6] = [0, 1, 2, 1, 3, 2];
-	let uniforms = Uniforms::new(0_f32, 0_f32);
+
+	let aspect = WINDOW_WIDTH as f32 / WINDOW_HEIGHT as f32;
+
+	let projection = Mat4::perspective_rh_gl(FOV, aspect, 0.1, 100.0);
+	let view = Mat4::look_at_rh(Vec3::new(0_f32, 0_f32, 5_f32), Vec3::ZERO, Vec3::Y);
+	let model = Mat4::IDENTITY;
+
+	let mvp = projection * view * model;
+
+	let uniforms = Uniforms::new(mvp.to_cols_array_2d());
 
 	let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
 		label: Some("Vertex Buffer"),
