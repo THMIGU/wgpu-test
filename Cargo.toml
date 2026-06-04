@@ -10,3 +10,4 @@ sdl3 = {
 }
 wgpu = "29.0.3"
 pollster = "0.4.0"
+bytemuck = "1.25.0"

@@ -1162,6 +1162,7 @@ dependencies = [
 name = "wgpu-test"
 version = "0.1.0"
 dependencies = [
+ "bytemuck",
  "pollster",
  "sdl3",
  "wgpu",
