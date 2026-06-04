@@ -52,6 +52,20 @@ impl Vertex {
 	}
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, Pod, Zeroable)]
+struct Uniforms {
+	offset: [f32; 2],
+}
+
+impl Uniforms {
+	fn new(x: f32, y: f32) -> Self {
+		Self {
+			offset: [x, y],
+		}
+	}
+}
+
 fn main() {
 	let sdl_context = sdl3::init().unwrap();
 	let video_subsystem = sdl_context.video().unwrap();
@@ -118,6 +132,54 @@ fn main() {
 
 	surface.configure(&device, &config);
 
+	let vertices = [
+		Vertex::new(-0.5, 0.5, 1_f32, 0_f32, 0_f32),  // top left
+		Vertex::new(0.5, 0.5, 0_f32, 1_f32, 0_f32),   // top right
+		Vertex::new(-0.5, -0.5, 0_f32, 0_f32, 1_f32), // bottom left
+		Vertex::new(0.5, -0.5, 1_f32, 1_f32, 0_f32),  // bottom right
+	];
+	let indices: [u16; 6] = [0, 1, 2, 1, 3, 2];
+	let uniforms = Uniforms::new(0_f32, 0_f32);
+
+	let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+		label: Some("Vertex Buffer"),
+		contents: bytemuck::cast_slice(&vertices),
+		usage: wgpu::BufferUsages::VERTEX,
+	});
+	let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+		label: Some("Index Buffer"),
+		contents: bytemuck::cast_slice(&indices),
+		usage: wgpu::BufferUsages::INDEX,
+	});
+	let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+		label: Some("Uniform Buffer"),
+		contents: bytemuck::cast_slice(&[uniforms]),
+		usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+	});
+
+	let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+		label: Some("Uniform Layout"),
+		entries: &[wgpu::BindGroupLayoutEntry {
+			binding: 0,
+			visibility: wgpu::ShaderStages::VERTEX,
+			ty: wgpu::BindingType::Buffer {
+				ty: wgpu::BufferBindingType::Uniform,
+				has_dynamic_offset: false,
+				min_binding_size: None,
+			},
+			count: None,
+		}],
+	});
+
+	let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+		label: Some("Uniform Bind Group"),
+		layout: &bind_group_layout,
+		entries: &[wgpu::BindGroupEntry {
+			binding: 0,
+			resource: uniform_buffer.as_entire_binding(),
+		}],
+	});
+
 	let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
 		label: Some("Triangle Shader"),
 		source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/shader.wgsl").into()),
@@ -125,7 +187,7 @@ fn main() {
 
 	let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
 		label: Some("Pipeline Layout"),
-		bind_group_layouts: &[],
+		bind_group_layouts: &[Some(&bind_group_layout)],
 		immediate_size: 0,
 	});
 
@@ -153,25 +215,6 @@ fn main() {
 		multisample: Default::default(),
 		multiview_mask: None,
 		cache: None,
-	});
-
-	let vertices = [
-		Vertex::new(-0.5, 0.5, 1_f32, 0_f32, 0_f32),  // top left
-		Vertex::new(0.5, 0.5, 0_f32, 1_f32, 0_f32),   // top right
-		Vertex::new(-0.5, -0.5, 0_f32, 0_f32, 1_f32), // bottom left
-		Vertex::new(0.5, -0.5, 1_f32, 1_f32, 0_f32),  // bottom right
-	];
-	let indices: [u16; 6] = [0, 1, 2, 1, 3, 2];
-
-	let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-		label: Some("Vertex Buffer"),
-		contents: bytemuck::cast_slice(&vertices),
-		usage: wgpu::BufferUsages::VERTEX,
-	});
-	let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-		label: Some("Index Buffer"),
-		contents: bytemuck::cast_slice(&indices),
-		usage: wgpu::BufferUsages::INDEX,
 	});
 
 	// ========================================
@@ -248,6 +291,7 @@ fn main() {
 
 			render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
 			render_pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+			render_pass.set_bind_group(0, &bind_group, &[]);
 
 			render_pass.draw_indexed(0..6, 0, 0..1);
 		}

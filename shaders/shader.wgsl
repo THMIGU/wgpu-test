@@ -8,13 +8,23 @@ struct VertexOutput {
 	@location(0) color: vec3<f32>,
 };
 
+struct Uniforms {
+	offset: vec2<f32>,
+}
+
+@group(0) @binding(0)
+var<uniform> uniforms: Uniforms;
+
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
 	var aspect = 3.0 / 4.0;
 	var out: VertexOutput;
 
 	out.position = vec4<f32>(
-		input.position.x * aspect, input.position.y, 0.0, 1.0
+		input.position.x * aspect + uniforms.offset.x,
+		input.position.y + uniforms.offset.y,
+		0.0,
+		1.0
 	);
 	out.color = input.color;
 
