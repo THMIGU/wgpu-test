@@ -1,6 +1,3 @@
-use std::{fs::File, io::BufReader};
-
-use obj::{Obj, load_obj};
 use wgpu::{Device, util::DeviceExt};
 
 use crate::vertex::Vertex;
@@ -32,15 +29,23 @@ impl Mesh {
 	}
 
 	pub fn from_obj(device: &Device, path: &str) -> Self {
-		let input = BufReader::new(File::open(path).unwrap());
-		let obj: Obj = load_obj(input).unwrap();
+		let obj = tobj::load_obj(path, &tobj::GPU_LOAD_OPTIONS).unwrap();
+		let (models, _) = obj;
 
-		let vertices: Vec<Vertex> = obj
-			.vertices
-			.iter()
-			.map(|x| Vertex {
-				position: x.position,
-				color: [1_f32, 1_f32, 1_f32],
+		let mesh = &models[0].mesh;
+
+		let vertices: Vec<Vertex> = mesh
+			.positions
+			.chunks(3)
+			.map(|c| {
+				Vertex::new(
+					c[0],
+					c[1],
+					c[2],
+					rand::random::<f32>(),
+					rand::random::<f32>(),
+					rand::random::<f32>(),
+				)
 			})
 			.collect();
 
@@ -51,14 +56,14 @@ impl Mesh {
 		});
 		let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
 			label: None,
-			contents: bytemuck::cast_slice(&obj.indices),
+			contents: bytemuck::cast_slice(&mesh.indices),
 			usage: wgpu::BufferUsages::INDEX,
 		});
 
 		Self {
 			vertex_buffer,
 			index_buffer,
-			index_count: obj.indices.len() as u32,
+			index_count: mesh.indices.len() as u32,
 		}
 	}
 }

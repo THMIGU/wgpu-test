@@ -43,8 +43,9 @@ fn main() {
 	camera.position = Vec3::new(0_f32, 0_f32, 10_f32);
 
 	let mut renderer = Renderer::new(&window);
+	renderer.update_camera(&camera);
 
-	let cube_mesh = Mesh::from_obj(&renderer.device, "models/cone.obj");
+	let cube_mesh = Mesh::from_obj(&renderer.device, "models/suzanne.obj");
 
 	let mut last_frame = Instant::now();
 	let mut accumulator = Duration::new(0, 0);
@@ -78,7 +79,7 @@ fn main() {
 			let forward = Vec3::new(camera_yaw.sin(), 0_f32, camera_yaw.cos());
 			let right = Vec3::new(forward.z, 0_f32, -forward.x);
 			let up = Vec3::new(0_f32, 1_f32, 0_f32);
-			let speed = 1_f32 / 60_f32;
+			let speed = 2_f32 / 60_f32;
 
 			if keyboard.is_scancode_pressed(Scancode::S) {
 				camera.position += forward * speed;
