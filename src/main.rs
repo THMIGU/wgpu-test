@@ -136,18 +136,29 @@ fn main() {
 	surface.configure(&device, &config);
 
 	let vertices = [
-		Vertex::new(-0.5, 0.5, 0_f32, 1_f32, 0_f32, 0_f32), // top left
-		Vertex::new(0.5, 0.5, 0_f32, 0_f32, 1_f32, 0_f32),  // top right
-		Vertex::new(-0.5, -0.5, 0_f32, 0_f32, 0_f32, 1_f32), // bottom left
-		Vertex::new(0.5, -0.5, 0_f32, 1_f32, 1_f32, 0_f32), // bottom right
+		Vertex::new(-0.5, -0.5, -0.5, 1_f32, 1_f32, 1_f32), //      7------6
+		Vertex::new(0.5, -0.5, -0.5, 1_f32, 1_f32, 1_f32),  //     /|     /|
+		Vertex::new(0.5, -0.5, 0.5, 1_f32, 1_f32, 1_f32),   //    4------5 |
+		Vertex::new(-0.5, -0.5, 0.5, 1_f32, 1_f32, 1_f32),  //    | |    | |
+		Vertex::new(-0.5, 0.5, -0.5, 1_f32, 1_f32, 1_f32),  //    | 3----|-2
+		Vertex::new(0.5, 0.5, -0.5, 1_f32, 1_f32, 1_f32),   //    |/     |/
+		Vertex::new(0.5, 0.5, 0.5, 1_f32, 1_f32, 1_f32),    //    0------1
+		Vertex::new(-0.5, 0.5, 0.5, 1_f32, 1_f32, 1_f32),
 	];
-	let indices: [u16; 6] = [0, 1, 2, 1, 3, 2];
+	let indices: [u16; 36] = [
+		4, 5, 6, 4, 6, 7, // Front (+Z)
+		0, 2, 1, 0, 3, 2, // Back (-Z)
+		0, 4, 7, 0, 7, 3, // Left (-X)
+		1, 2, 6, 1, 6, 5, // Right (+X)
+		3, 7, 6, 3, 6, 2, // Top (+Y)
+		0, 1, 5, 0, 5, 4, // Bottom (-Y)
+	];
 
 	let aspect = WINDOW_WIDTH as f32 / WINDOW_HEIGHT as f32;
 
 	let projection = Mat4::perspective_rh_gl(FOV, aspect, 0.1, 100.0);
-	let view = Mat4::look_at_rh(Vec3::new(0_f32, 0_f32, 5_f32), Vec3::ZERO, Vec3::Y);
-	let model = Mat4::IDENTITY;
+	let view = Mat4::look_at_rh(Vec3::new(0_f32, 0_f32, 2_f32), Vec3::ZERO, Vec3::Y);
+	let model = Mat4::from_axis_angle(Vec3::Y, 45_f32.to_radians());
 
 	let mvp = projection * view * model;
 
@@ -231,6 +242,8 @@ fn main() {
 
 	// ========================================
 
+	let mut rot = 45_f32;
+
 	let mut last_frame = Instant::now();
 	let mut accumulator = Duration::new(0, 0);
 	let tick_time = Duration::from_secs_f64(1_f64 / TICK_RATE);
@@ -253,6 +266,15 @@ fn main() {
 		}
 
 		while accumulator >= tick_time {
+			rot += 1_f32;
+
+			let model = Mat4::from_axis_angle(Vec3::Y, rot.to_radians());
+
+			let mvp = projection * view * model;
+			let uniforms = Uniforms::new(mvp.to_cols_array_2d());
+
+			queue.write_buffer(&uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
+
 			accumulator -= tick_time;
 		}
 
@@ -305,7 +327,7 @@ fn main() {
 			render_pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint16);
 			render_pass.set_bind_group(0, &bind_group, &[]);
 
-			render_pass.draw_indexed(0..6, 0, 0..1);
+			render_pass.draw_indexed(0..36, 0, 0..1);
 		}
 
 		queue.submit(Some(encoder.finish()));
