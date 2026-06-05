@@ -135,29 +135,45 @@ fn main() {
 
 	surface.configure(&device, &config);
 
+	let depth_texture = device.create_texture(&wgpu::TextureDescriptor {
+		label: Some("Depth Texture"),
+		size: wgpu::Extent3d {
+			width: config.width,
+			height: config.height,
+			depth_or_array_layers: 1,
+		},
+		mip_level_count: 1,
+		sample_count: 1,
+		dimension: wgpu::TextureDimension::D2,
+		format: wgpu::TextureFormat::Depth32Float,
+		usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+		view_formats: &[],
+	});
+	let depth_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
+
 	let vertices = [
-		Vertex::new(-0.5, -0.5, -0.5, 1_f32, 1_f32, 1_f32), //      7------6
-		Vertex::new(0.5, -0.5, -0.5, 1_f32, 1_f32, 1_f32),  //     /|     /|
-		Vertex::new(0.5, -0.5, 0.5, 1_f32, 1_f32, 1_f32),   //    4------5 |
-		Vertex::new(-0.5, -0.5, 0.5, 1_f32, 1_f32, 1_f32),  //    | |    | |
-		Vertex::new(-0.5, 0.5, -0.5, 1_f32, 1_f32, 1_f32),  //    | 3----|-2
-		Vertex::new(0.5, 0.5, -0.5, 1_f32, 1_f32, 1_f32),   //    |/     |/
-		Vertex::new(0.5, 0.5, 0.5, 1_f32, 1_f32, 1_f32),    //    0------1
-		Vertex::new(-0.5, 0.5, 0.5, 1_f32, 1_f32, 1_f32),
+		Vertex::new(-0.5, -0.5, -0.5, 1_f32, 0_f32, 0_f32), //      7------6
+		Vertex::new(0.5, -0.5, -0.5, 0_f32, 1_f32, 0_f32),  //     /|     /|
+		Vertex::new(0.5, -0.5, 0.5, 0_f32, 0_f32, 1_f32),   //    4------5 |
+		Vertex::new(-0.5, -0.5, 0.5, 1_f32, 1_f32, 0_f32),  //    | |    | |
+		Vertex::new(-0.5, 0.5, -0.5, 1_f32, 0_f32, 1_f32),  //    | 3----|-2
+		Vertex::new(0.5, 0.5, -0.5, 0_f32, 1_f32, 1_f32),   //    |/     |/
+		Vertex::new(0.5, 0.5, 0.5, 1_f32, 0.5_f32, 0_f32),  //    0------1
+		Vertex::new(-0.5, 0.5, 0.5, 0.5_f32, 0_f32, 1_f32),
 	];
 	let indices: [u16; 36] = [
-		4, 5, 6, 4, 6, 7, // Front (+Z)
-		0, 2, 1, 0, 3, 2, // Back (-Z)
+		4, 5, 6, 4, 6, 7, // Top (+Y)
+		0, 2, 1, 0, 3, 2, // Bottom (-Y)
 		0, 4, 7, 0, 7, 3, // Left (-X)
 		1, 2, 6, 1, 6, 5, // Right (+X)
-		3, 7, 6, 3, 6, 2, // Top (+Y)
-		0, 1, 5, 0, 5, 4, // Bottom (-Y)
+		3, 7, 6, 3, 6, 2, // Back (-Z)
+		0, 1, 5, 0, 5, 4, // Front (+Z)
 	];
 
 	let aspect = WINDOW_WIDTH as f32 / WINDOW_HEIGHT as f32;
 
 	let projection = Mat4::perspective_rh_gl(FOV, aspect, 0.1, 100.0);
-	let view = Mat4::look_at_rh(Vec3::new(0_f32, 0_f32, 2_f32), Vec3::ZERO, Vec3::Y);
+	let view = Mat4::look_at_rh(Vec3::new(0_f32, 2_f32, 2_f32), Vec3::ZERO, Vec3::Y);
 	let model = Mat4::from_axis_angle(Vec3::Y, 45_f32.to_radians());
 
 	let mvp = projection * view * model;
@@ -234,7 +250,13 @@ fn main() {
 			})],
 		}),
 		primitive: Default::default(),
-		depth_stencil: None,
+		depth_stencil: Some(wgpu::DepthStencilState {
+			format: wgpu::TextureFormat::Depth32Float,
+			depth_write_enabled: Some(true),
+			depth_compare: Some(wgpu::CompareFunction::Less),
+			stencil: Default::default(),
+			bias: Default::default(),
+		}),
 		multisample: Default::default(),
 		multiview_mask: None,
 		cache: None,
@@ -316,7 +338,14 @@ fn main() {
 						store: wgpu::StoreOp::Store,
 					},
 				})],
-				depth_stencil_attachment: None,
+				depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+					view: &depth_view,
+					depth_ops: Some(wgpu::Operations {
+						load: wgpu::LoadOp::Clear(1_f32),
+						store: wgpu::StoreOp::Store,
+					}),
+					stencil_ops: None,
+				}),
 				occlusion_query_set: None,
 				timestamp_writes: None,
 				multiview_mask: None,
