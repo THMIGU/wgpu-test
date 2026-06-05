@@ -15,8 +15,8 @@ use crate::{camera::Camera, fps::FPS, mesh::Mesh, renderer::Renderer};
 
 const TICK_RATE: f64 = 60_f64;
 
-const WINDOW_WIDTH: u32 = 2560;
-const WINDOW_HEIGHT: u32 = 1440;
+const WINDOW_WIDTH: u32 = 800;
+const WINDOW_HEIGHT: u32 = 600;
 
 const FOV: f32 = 70_f32.to_radians();
 
@@ -27,7 +27,6 @@ fn main() {
 	let mut window = video_subsystem
 		.window("wgpu-test", WINDOW_WIDTH, WINDOW_HEIGHT)
 		.position_centered()
-		.fullscreen()
 		.build()
 		.unwrap();
 
@@ -45,7 +44,7 @@ fn main() {
 
 	let mut renderer = Renderer::new(&window);
 
-	let cube_mesh = Mesh::from_obj(&renderer.device, "models/suzanne.obj");
+	let cube_mesh = Mesh::from_obj(&renderer.device, "models/cone.obj");
 
 	let mut last_frame = Instant::now();
 	let mut accumulator = Duration::new(0, 0);

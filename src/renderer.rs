@@ -67,7 +67,7 @@ impl Renderer {
 			format: surface_format,
 			width: size.0,
 			height: size.1,
-			present_mode: wgpu::PresentMode::Fifo,
+			present_mode: wgpu::PresentMode::Immediate,
 			alpha_mode: alpha_mode,
 			view_formats: vec![],
 			desired_maximum_frame_latency: 2,
