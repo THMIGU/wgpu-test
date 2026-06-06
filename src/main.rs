@@ -15,8 +15,8 @@ use sdl3::{event::Event, keyboard::Scancode};
 use std::time::{Duration, Instant};
 
 use crate::{
-	camera::Camera, fps::FPS, mesh::Mesh, model::Model, renderer::Renderer, scene::Scene,
-	transform::Transform, vertex::Vertex,
+	camera::Camera, fps::FPS, renderer::Renderer, scene::Scene, transform::Transform,
+	vertex::Vertex,
 };
 
 const TICK_RATE: f64 = 60_f64;
@@ -51,9 +51,15 @@ fn main() {
 	let mut renderer = Renderer::new(&window);
 	renderer.update_camera(&camera);
 
-	let cube_mesh = renderer.create_mesh_from_obj("models/cone.obj");
-	let cube_model =
-		renderer.create_model(cube_mesh, Transform::new(Vec3::ZERO, Quat::IDENTITY, Vec3::ONE));
+	let bunny_mesh = renderer.create_mesh_from_obj("models/stanford-bunny.obj");
+	let bunny_model = renderer
+		.create_model(bunny_mesh, Transform::new(Vec3::ZERO, Quat::IDENTITY, Vec3::splat(20_f32)));
+
+	let teapot_mesh = renderer.create_mesh_from_obj("models/teapot.obj");
+	let teapot_model = renderer.create_model(
+		teapot_mesh,
+		Transform::new(Vec3::new(4_f32, 0_f32, 0_f32), Quat::IDENTITY, Vec3::splat(0.75)),
+	);
 
 	let plane_vertices = vec![
 		Vertex::new(-1_f32, 0_f32, -1_f32, 1_f32, 1_f32, 1_f32),
@@ -67,7 +73,7 @@ fn main() {
 	let plane_model = renderer
 		.create_model(plane_mesh, Transform::new(Vec3::ZERO, Quat::IDENTITY, Vec3::splat(10_f32)));
 
-	let mut scene = Scene::new(vec![cube_model, plane_model]);
+	let mut scene = Scene::new(vec![bunny_model, teapot_model, plane_model]);
 
 	let mut angle = 0_f32;
 
@@ -142,14 +148,25 @@ fn main() {
 
 			renderer.update_camera(&camera);
 
-			let cube_model = &mut scene.models[0];
+			let models = &mut scene.models;
+
+			let bunny_model = &mut models[0];
 
 			angle += 1_f32;
-			cube_model.transform.rotation = Quat::from_axis_angle(Vec3::Y, angle.to_radians());
-			cube_model
+			bunny_model.transform.rotation = Quat::from_axis_angle(Vec3::Y, angle.to_radians());
+			bunny_model
 				.transform
 				.position
-				.y = (angle / 50_f32).sin() * 1_f32;
+				.y = (angle / 50_f32).sin() * 1_f32 + 2_f32;
+
+			let teapot_model = &mut models[1];
+			teapot_model
+				.transform
+				.rotation = Quat::from_axis_angle(Vec3::Y, (-angle).to_radians());
+			teapot_model
+				.transform
+				.position
+				.y = (angle / 50_f32).sin() * -1_f32 + 2_f32;
 
 			accumulator -= tick_time;
 		}
