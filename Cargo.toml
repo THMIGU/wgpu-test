@@ -8,9 +8,21 @@ sdl3 = {
     version = "0.18.3",
     features = ["build-from-source-static", "raw-window-handle"]
 }
-wgpu = "29.0.3"
+wgpu = {
+	version = "29.0.3",
+	default-features = false,
+	features = ["vulkan", "wgsl"]
+}
+rand = "0.9"
 pollster = "0.4.0"
 bytemuck = "1.25.0"
 glam = "0.33.0"
 tobj = "4.0.3"
-rand = "0.9"
+
+[profile.release]
+debug = false
+strip = true
+lto = true
+codegen-units = 1
+panic = "abort"
+opt-level = "s"
