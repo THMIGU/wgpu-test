@@ -1,15 +1,16 @@
-use crate::{camera::Camera, mesh::Mesh, uniform::Uniform, vertex::Vertex};
+use crate::{camera::Camera, mesh::Mesh, model::Model, uniform::Uniform, vertex::Vertex};
 
 use glam::Mat4;
 use sdl3::video::Window;
 use wgpu::{
 	rwh::{HasDisplayHandle, HasWindowHandle},
 	util::DeviceExt,
+	wgc::device::queue,
 };
 
 pub struct Renderer {
-	surface: wgpu::Surface<'static>,
 	pub device: wgpu::Device,
+	surface: wgpu::Surface<'static>,
 	queue: wgpu::Queue,
 	config: wgpu::SurfaceConfiguration,
 
@@ -18,8 +19,11 @@ pub struct Renderer {
 
 	render_pipeline: wgpu::RenderPipeline,
 
-	uniform_buffer: wgpu::Buffer,
-	bind_group: wgpu::BindGroup,
+	view_uniform_buffer: wgpu::Buffer,
+	model_uniform_buffer: wgpu::Buffer,
+
+	view_bind_group: wgpu::BindGroup,
+	model_bind_group: wgpu::BindGroup,
 }
 
 impl Renderer {
@@ -67,7 +71,7 @@ impl Renderer {
 			format: surface_format,
 			width: size.0,
 			height: size.1,
-			present_mode: wgpu::PresentMode::Immediate,
+			present_mode: wgpu::PresentMode::Fifo,
 			alpha_mode: alpha_mode,
 			view_formats: vec![],
 			desired_maximum_frame_latency: 2,
@@ -91,32 +95,60 @@ impl Renderer {
 		});
 		let depth_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-		let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-			label: Some("Uniform Buffer"),
+		let view_uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+			label: Some("View Uniform Buffer"),
+			contents: bytemuck::cast_slice(&[Uniform::new(Mat4::IDENTITY.to_cols_array_2d())]),
+			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+		});
+		let model_uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+			label: Some("Model Uniform Buffer"),
 			contents: bytemuck::cast_slice(&[Uniform::new(Mat4::IDENTITY.to_cols_array_2d())]),
 			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
 		});
 
-		let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-			label: Some("Uniform Layout"),
-			entries: &[wgpu::BindGroupLayoutEntry {
-				binding: 0,
-				visibility: wgpu::ShaderStages::VERTEX,
-				ty: wgpu::BindingType::Buffer {
-					ty: wgpu::BufferBindingType::Uniform,
-					has_dynamic_offset: false,
-					min_binding_size: None,
-				},
-				count: None,
-			}],
-		});
+		let view_bind_group_layout =
+			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+				label: Some("View Uniform Layout"),
+				entries: &[wgpu::BindGroupLayoutEntry {
+					binding: 0,
+					visibility: wgpu::ShaderStages::VERTEX,
+					ty: wgpu::BindingType::Buffer {
+						ty: wgpu::BufferBindingType::Uniform,
+						has_dynamic_offset: false,
+						min_binding_size: None,
+					},
+					count: None,
+				}],
+			});
+		let model_bind_group_layout =
+			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+				label: Some("Model Uniform Layout"),
+				entries: &[wgpu::BindGroupLayoutEntry {
+					binding: 0,
+					visibility: wgpu::ShaderStages::VERTEX,
+					ty: wgpu::BindingType::Buffer {
+						ty: wgpu::BufferBindingType::Uniform,
+						has_dynamic_offset: false,
+						min_binding_size: None,
+					},
+					count: None,
+				}],
+			});
 
-		let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-			label: Some("Uniform Bind Group"),
-			layout: &bind_group_layout,
+		let view_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+			label: Some("View Uniform Bind Group"),
+			layout: &view_bind_group_layout,
 			entries: &[wgpu::BindGroupEntry {
 				binding: 0,
-				resource: uniform_buffer.as_entire_binding(),
+				resource: view_uniform_buffer.as_entire_binding(),
+			}],
+		});
+		let model_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+			label: Some("Model Uniform Bind Group"),
+			layout: &model_bind_group_layout,
+			entries: &[wgpu::BindGroupEntry {
+				binding: 0,
+				resource: model_uniform_buffer.as_entire_binding(),
 			}],
 		});
 
@@ -127,7 +159,7 @@ impl Renderer {
 
 		let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
 			label: Some("Pipeline Layout"),
-			bind_group_layouts: &[Some(&bind_group_layout)],
+			bind_group_layouts: &[Some(&view_bind_group_layout), Some(&model_bind_group_layout)],
 			immediate_size: 0,
 		});
 
@@ -174,8 +206,10 @@ impl Renderer {
 			depth_texture,
 			depth_view,
 			render_pipeline,
-			uniform_buffer,
-			bind_group,
+			view_uniform_buffer,
+			model_uniform_buffer,
+			view_bind_group,
+			model_bind_group,
 		}
 	}
 
@@ -187,10 +221,10 @@ impl Renderer {
 		);
 
 		self.queue
-			.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[uniform]));
+			.write_buffer(&self.view_uniform_buffer, 0, bytemuck::cast_slice(&[uniform]));
 	}
 
-	pub fn render_mesh(&mut self, mesh: &Mesh) {
+	pub fn render_model(&mut self, model: &Model) {
 		let frame = match self
 			.surface
 			.get_current_texture()
@@ -240,11 +274,38 @@ impl Renderer {
 			});
 			render_pass.set_pipeline(&self.render_pipeline);
 
-			render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
-			render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
-			render_pass.set_bind_group(0, &self.bind_group, &[]);
+			render_pass.set_vertex_buffer(
+				0,
+				model
+					.mesh
+					.vertex_buffer
+					.slice(..),
+			);
+			render_pass.set_index_buffer(
+				model
+					.mesh
+					.index_buffer
+					.slice(..),
+				wgpu::IndexFormat::Uint32,
+			);
 
-			render_pass.draw_indexed(0..mesh.index_count, 0, 0..1);
+			let uniform = Uniform::new(
+				model
+					.transform
+					.matrix()
+					.to_cols_array_2d(),
+			);
+
+			self.queue.write_buffer(
+				&self.model_uniform_buffer,
+				0,
+				bytemuck::cast_slice(&[uniform]),
+			);
+
+			render_pass.set_bind_group(0, &self.view_bind_group, &[]);
+			render_pass.set_bind_group(1, &self.model_bind_group, &[]);
+
+			render_pass.draw_indexed(0..model.mesh.index_count, 0, 0..1);
 		}
 
 		self.queue

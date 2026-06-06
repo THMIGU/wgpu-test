@@ -3,7 +3,9 @@
 mod camera;
 mod fps;
 mod mesh;
+mod model;
 mod renderer;
+mod transform;
 mod uniform;
 mod vertex;
 
@@ -11,7 +13,9 @@ use glam::{Quat, Vec3};
 use sdl3::{event::Event, keyboard::Scancode};
 use std::time::{Duration, Instant};
 
-use crate::{camera::Camera, fps::FPS, mesh::Mesh, renderer::Renderer};
+use crate::{
+	camera::Camera, fps::FPS, mesh::Mesh, model::Model, renderer::Renderer, transform::Transform,
+};
 
 const TICK_RATE: f64 = 60_f64;
 
@@ -45,7 +49,11 @@ fn main() {
 	let mut renderer = Renderer::new(&window);
 	renderer.update_camera(&camera);
 
-	let cube_mesh = Mesh::from_obj(&renderer.device, "models/suzanne.obj");
+	let cube_mesh = Mesh::from_obj(&renderer.device, "models/cone.obj");
+	let mut cube_model =
+		Model::new(cube_mesh, Transform::new(Vec3::ZERO, Quat::IDENTITY, Vec3::ONE));
+
+	let mut angle = 0_f32;
 
 	let mut last_frame = Instant::now();
 	let mut accumulator = Duration::new(0, 0);
@@ -79,7 +87,7 @@ fn main() {
 			let forward = Vec3::new(camera_yaw.sin(), 0_f32, camera_yaw.cos());
 			let right = Vec3::new(forward.z, 0_f32, -forward.x);
 			let up = Vec3::new(0_f32, 1_f32, 0_f32);
-			let speed = 2_f32 / 60_f32;
+			let speed = 5_f32 / 60_f32;
 
 			if keyboard.is_scancode_pressed(Scancode::S) {
 				camera.position += forward * speed;
@@ -118,6 +126,13 @@ fn main() {
 
 			renderer.update_camera(&camera);
 
+			angle += 1_f32;
+			cube_model.transform.rotation = Quat::from_axis_angle(Vec3::Y, angle.to_radians());
+			cube_model
+				.transform
+				.position
+				.y = (angle / 50_f32).sin() * 1_f32;
+
 			accumulator -= tick_time;
 		}
 
@@ -127,6 +142,6 @@ fn main() {
 			.set_title(&format!("wgpu-test | {:.0} FPS", display_fps))
 			.unwrap();
 
-		renderer.render_mesh(&cube_mesh);
+		renderer.render_model(&cube_model);
 	}
 }

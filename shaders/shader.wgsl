@@ -8,18 +8,20 @@ struct VertexOutput {
 	@location(0) color: vec3<f32>,
 };
 
-struct Uniforms {
+struct Uniform {
 	mvp: mat4x4<f32>,
 }
 
 @group(0) @binding(0)
-var<uniform> uniforms: Uniforms;
+var<uniform> view_uniform: Uniform;
+@group(1) @binding(0)
+var<uniform> model_uniform: Uniform;
 
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
 	var out: VertexOutput;
 
-	out.position = uniforms.mvp * vec4<f32>(
+	out.position = view_uniform.mvp * model_uniform.mvp * vec4<f32>(
 		input.position,
 		1.0
 	);
