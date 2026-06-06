@@ -9,7 +9,7 @@ pub struct Mesh {
 }
 
 impl Mesh {
-	pub fn new(device: &Device, vertices: Vec<Vertex>, indices: Vec<u16>) -> Self {
+	pub fn new(vertices: Vec<Vertex>, indices: Vec<u32>, device: &Device) -> Self {
 		let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
 			label: None,
 			contents: bytemuck::cast_slice(&vertices),
@@ -28,7 +28,7 @@ impl Mesh {
 		}
 	}
 
-	pub fn from_obj(device: &Device, path: &str) -> Self {
+	pub fn from_obj(path: &str, device: &Device) -> Self {
 		let obj = tobj::load_obj(path, &tobj::GPU_LOAD_OPTIONS).unwrap();
 		let (models, _) = obj;
 

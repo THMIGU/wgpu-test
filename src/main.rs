@@ -5,6 +5,7 @@ mod fps;
 mod mesh;
 mod model;
 mod renderer;
+mod scene;
 mod transform;
 mod uniform;
 mod vertex;
@@ -14,7 +15,8 @@ use sdl3::{event::Event, keyboard::Scancode};
 use std::time::{Duration, Instant};
 
 use crate::{
-	camera::Camera, fps::FPS, mesh::Mesh, model::Model, renderer::Renderer, transform::Transform,
+	camera::Camera, fps::FPS, mesh::Mesh, model::Model, renderer::Renderer, scene::Scene,
+	transform::Transform, vertex::Vertex,
 };
 
 const TICK_RATE: f64 = 60_f64;
@@ -49,9 +51,23 @@ fn main() {
 	let mut renderer = Renderer::new(&window);
 	renderer.update_camera(&camera);
 
-	let cube_mesh = Mesh::from_obj(&renderer.device, "models/cone.obj");
-	let mut cube_model =
-		Model::new(cube_mesh, Transform::new(Vec3::ZERO, Quat::IDENTITY, Vec3::ONE));
+	let cube_mesh = renderer.create_mesh_from_obj("models/cone.obj");
+	let cube_model =
+		renderer.create_model(cube_mesh, Transform::new(Vec3::ZERO, Quat::IDENTITY, Vec3::ONE));
+
+	let plane_vertices = vec![
+		Vertex::new(-1_f32, 0_f32, -1_f32, 1_f32, 1_f32, 1_f32),
+		Vertex::new(1_f32, 0_f32, -1_f32, 1_f32, 1_f32, 1_f32),
+		Vertex::new(1_f32, 0_f32, 1_f32, 1_f32, 1_f32, 1_f32),
+		Vertex::new(-1_f32, 0_f32, 1_f32, 1_f32, 1_f32, 1_f32),
+	];
+	let plane_indices: Vec<u32> = vec![0, 2, 1, 0, 3, 2];
+
+	let plane_mesh = renderer.create_mesh(plane_vertices, plane_indices);
+	let plane_model = renderer
+		.create_model(plane_mesh, Transform::new(Vec3::ZERO, Quat::IDENTITY, Vec3::splat(10_f32)));
+
+	let mut scene = Scene::new(vec![cube_model, plane_model]);
 
 	let mut angle = 0_f32;
 
@@ -126,6 +142,8 @@ fn main() {
 
 			renderer.update_camera(&camera);
 
+			let cube_model = &mut scene.models[0];
+
 			angle += 1_f32;
 			cube_model.transform.rotation = Quat::from_axis_angle(Vec3::Y, angle.to_radians());
 			cube_model
@@ -142,6 +160,6 @@ fn main() {
 			.set_title(&format!("wgpu-test | {:.0} FPS", display_fps))
 			.unwrap();
 
-		renderer.render_model(&cube_model);
+		renderer.render_scene(&scene);
 	}
 }

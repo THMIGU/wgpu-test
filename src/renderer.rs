@@ -1,29 +1,26 @@
-use crate::{camera::Camera, mesh::Mesh, model::Model, uniform::Uniform, vertex::Vertex};
+use crate::{
+	camera::Camera, mesh::Mesh, model::Model, scene::Scene, transform::Transform, uniform::Uniform,
+	vertex::Vertex,
+};
 
 use glam::Mat4;
 use sdl3::video::Window;
 use wgpu::{
 	rwh::{HasDisplayHandle, HasWindowHandle},
 	util::DeviceExt,
-	wgc::device::queue,
 };
 
 pub struct Renderer {
-	pub device: wgpu::Device,
+	device: wgpu::Device,
 	surface: wgpu::Surface<'static>,
 	queue: wgpu::Queue,
 	config: wgpu::SurfaceConfiguration,
-
 	depth_texture: wgpu::Texture,
 	depth_view: wgpu::TextureView,
-
 	render_pipeline: wgpu::RenderPipeline,
-
 	view_uniform_buffer: wgpu::Buffer,
-	model_uniform_buffer: wgpu::Buffer,
-
+	model_bind_group_layout: wgpu::BindGroupLayout,
 	view_bind_group: wgpu::BindGroup,
-	model_bind_group: wgpu::BindGroup,
 }
 
 impl Renderer {
@@ -100,11 +97,6 @@ impl Renderer {
 			contents: bytemuck::cast_slice(&[Uniform::new(Mat4::IDENTITY.to_cols_array_2d())]),
 			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
 		});
-		let model_uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-			label: Some("Model Uniform Buffer"),
-			contents: bytemuck::cast_slice(&[Uniform::new(Mat4::IDENTITY.to_cols_array_2d())]),
-			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-		});
 
 		let view_bind_group_layout =
 			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -141,14 +133,6 @@ impl Renderer {
 			entries: &[wgpu::BindGroupEntry {
 				binding: 0,
 				resource: view_uniform_buffer.as_entire_binding(),
-			}],
-		});
-		let model_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-			label: Some("Model Uniform Bind Group"),
-			layout: &model_bind_group_layout,
-			entries: &[wgpu::BindGroupEntry {
-				binding: 0,
-				resource: model_uniform_buffer.as_entire_binding(),
 			}],
 		});
 
@@ -207,9 +191,8 @@ impl Renderer {
 			depth_view,
 			render_pipeline,
 			view_uniform_buffer,
-			model_uniform_buffer,
+			model_bind_group_layout,
 			view_bind_group,
-			model_bind_group,
 		}
 	}
 
@@ -224,7 +207,19 @@ impl Renderer {
 			.write_buffer(&self.view_uniform_buffer, 0, bytemuck::cast_slice(&[uniform]));
 	}
 
-	pub fn render_model(&mut self, model: &Model) {
+	pub fn create_mesh(&self, vertices: Vec<Vertex>, indices: Vec<u32>) -> Mesh {
+		Mesh::new(vertices, indices, &self.device)
+	}
+
+	pub fn create_mesh_from_obj(&self, path: &str) -> Mesh {
+		Mesh::from_obj(path, &self.device)
+	}
+
+	pub fn create_model(&self, mesh: Mesh, transform: Transform) -> Model {
+		Model::new(mesh, transform, &self.device, &self.model_bind_group_layout)
+	}
+
+	pub fn render_scene(&mut self, scene: &Scene) {
 		let frame = match self
 			.surface
 			.get_current_texture()
@@ -274,38 +269,41 @@ impl Renderer {
 			});
 			render_pass.set_pipeline(&self.render_pipeline);
 
-			render_pass.set_vertex_buffer(
-				0,
-				model
-					.mesh
-					.vertex_buffer
-					.slice(..),
-			);
-			render_pass.set_index_buffer(
-				model
-					.mesh
-					.index_buffer
-					.slice(..),
-				wgpu::IndexFormat::Uint32,
-			);
-
-			let uniform = Uniform::new(
-				model
-					.transform
-					.matrix()
-					.to_cols_array_2d(),
-			);
-
-			self.queue.write_buffer(
-				&self.model_uniform_buffer,
-				0,
-				bytemuck::cast_slice(&[uniform]),
-			);
-
 			render_pass.set_bind_group(0, &self.view_bind_group, &[]);
-			render_pass.set_bind_group(1, &self.model_bind_group, &[]);
 
-			render_pass.draw_indexed(0..model.mesh.index_count, 0, 0..1);
+			for model in &scene.models {
+				render_pass.set_bind_group(1, &model.model_bind_group, &[]);
+
+				render_pass.set_vertex_buffer(
+					0,
+					model
+						.mesh
+						.vertex_buffer
+						.slice(..),
+				);
+				render_pass.set_index_buffer(
+					model
+						.mesh
+						.index_buffer
+						.slice(..),
+					wgpu::IndexFormat::Uint32,
+				);
+
+				let uniform = Uniform::new(
+					model
+						.transform
+						.matrix()
+						.to_cols_array_2d(),
+				);
+
+				self.queue.write_buffer(
+					&model.model_uniform_buffer,
+					0,
+					bytemuck::cast_slice(&[uniform]),
+				);
+
+				render_pass.draw_indexed(0..model.mesh.index_count, 0, 0..1);
+			}
 		}
 
 		self.queue
