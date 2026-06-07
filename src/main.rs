@@ -15,10 +15,7 @@ use glam::{Quat, Vec3};
 use sdl3::{event::Event, keyboard::Scancode};
 use std::time::{Duration, Instant};
 
-use crate::{
-	camera::Camera, fps::FPS, renderer::Renderer, scene::Scene, transform::Transform,
-	vertex::Vertex,
-};
+use crate::{camera::Camera, fps::FPS, renderer::Renderer, scene::Scene, transform::Transform};
 
 const TICK_RATE: f64 = 60_f64;
 
@@ -52,15 +49,23 @@ fn main() {
 	let mut renderer = Renderer::new(&window);
 	renderer.update_camera(&camera);
 
-	let cube_mesh = renderer.create_mesh_from_obj("models/car.obj");
-	let cube_material = renderer.create_material_from_texture("textures/car.png");
-	let cube_model = renderer.create_model(
-		cube_mesh,
+	let car1_mesh = renderer.create_mesh_from_obj("models/car1.obj");
+	let car1_material = renderer.create_material_from_texture("textures/car1.png");
+	let car1_model = renderer.create_model(
+		car1_mesh,
 		Transform::new(Vec3::ZERO, Quat::IDENTITY, Vec3::ONE),
-		cube_material,
+		car1_material,
 	);
 
-	let scene = Scene::new(vec![cube_model]);
+	let car2_mesh = renderer.create_mesh_from_obj("models/car2.obj");
+	let car2_material = renderer.create_material_from_texture("textures/car2.png");
+	let car2_model = renderer.create_model(
+		car2_mesh,
+		Transform::new(Vec3::new(5_f32, 0_f32, 0_f32), Quat::IDENTITY, Vec3::ONE),
+		car2_material,
+	);
+
+	let scene = Scene::new(vec![car1_model, car2_model]);
 
 	let mut last_frame = Instant::now();
 	let mut accumulator = Duration::new(0, 0);
