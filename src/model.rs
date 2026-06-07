@@ -1,11 +1,12 @@
 use glam::Mat4;
 use wgpu::{Device, util::DeviceExt};
 
-use crate::{mesh::Mesh, transform::Transform, uniform::Uniform};
+use crate::{material::Material, mesh::Mesh, transform::Transform, uniform::Uniform};
 
 pub struct Model {
 	pub mesh: Mesh,
 	pub transform: Transform,
+	pub material: Material,
 	pub model_uniform_buffer: wgpu::Buffer,
 	pub model_bind_group: wgpu::BindGroup,
 }
@@ -14,6 +15,7 @@ impl Model {
 	pub fn new(
 		mesh: Mesh,
 		transform: Transform,
+		material: Material,
 		device: &Device,
 		model_bind_group_layout: &wgpu::BindGroupLayout,
 	) -> Self {
@@ -24,7 +26,7 @@ impl Model {
 		});
 
 		let model_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-			label: Some("Model Uniform Bind Group"),
+			label: Some("Model Bind Group"),
 			layout: &model_bind_group_layout,
 			entries: &[wgpu::BindGroupEntry {
 				binding: 0,
@@ -35,6 +37,7 @@ impl Model {
 		Self {
 			mesh,
 			transform,
+			material,
 			model_uniform_buffer,
 			model_bind_group,
 		}

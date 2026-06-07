@@ -1,5 +1,11 @@
 use crate::{
-	camera::Camera, mesh::Mesh, model::Model, scene::Scene, transform::Transform, uniform::Uniform,
+	camera::Camera,
+	material::{self, Material},
+	mesh::Mesh,
+	model::Model,
+	scene::Scene,
+	transform::Transform,
+	uniform::Uniform,
 	vertex::Vertex,
 };
 
@@ -19,6 +25,7 @@ pub struct Renderer {
 	depth_view: wgpu::TextureView,
 	render_pipeline: wgpu::RenderPipeline,
 	view_uniform_buffer: wgpu::Buffer,
+	material_bind_group_layout: wgpu::BindGroupLayout,
 	model_bind_group_layout: wgpu::BindGroupLayout,
 	view_bind_group: wgpu::BindGroup,
 }
@@ -100,7 +107,7 @@ impl Renderer {
 
 		let view_bind_group_layout =
 			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-				label: Some("View Uniform Layout"),
+				label: Some("View Bind Group Layout"),
 				entries: &[wgpu::BindGroupLayoutEntry {
 					binding: 0,
 					visibility: wgpu::ShaderStages::VERTEX,
@@ -112,9 +119,33 @@ impl Renderer {
 					count: None,
 				}],
 			});
+		let material_bind_group_layout =
+			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+				label: Some("Material Bind Group Layout"),
+				entries: &[
+					wgpu::BindGroupLayoutEntry {
+						binding: 0,
+						visibility: wgpu::ShaderStages::FRAGMENT,
+						ty: wgpu::BindingType::Texture {
+							multisampled: false,
+							view_dimension: wgpu::TextureViewDimension::D2,
+							sample_type: wgpu::TextureSampleType::Float {
+								filterable: true,
+							},
+						},
+						count: None,
+					},
+					wgpu::BindGroupLayoutEntry {
+						binding: 1,
+						visibility: wgpu::ShaderStages::FRAGMENT,
+						ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+						count: None,
+					},
+				],
+			});
 		let model_bind_group_layout =
 			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-				label: Some("Model Uniform Layout"),
+				label: Some("Model Bind Group Layout"),
 				entries: &[wgpu::BindGroupLayoutEntry {
 					binding: 0,
 					visibility: wgpu::ShaderStages::VERTEX,
@@ -128,7 +159,7 @@ impl Renderer {
 			});
 
 		let view_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-			label: Some("View Uniform Bind Group"),
+			label: Some("View Bind Group"),
 			layout: &view_bind_group_layout,
 			entries: &[wgpu::BindGroupEntry {
 				binding: 0,
@@ -143,7 +174,11 @@ impl Renderer {
 
 		let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
 			label: Some("Pipeline Layout"),
-			bind_group_layouts: &[Some(&view_bind_group_layout), Some(&model_bind_group_layout)],
+			bind_group_layouts: &[
+				Some(&view_bind_group_layout),
+				Some(&material_bind_group_layout),
+				Some(&model_bind_group_layout),
+			],
 			immediate_size: 0,
 		});
 
@@ -191,6 +226,7 @@ impl Renderer {
 			depth_view,
 			render_pipeline,
 			view_uniform_buffer,
+			material_bind_group_layout,
 			model_bind_group_layout,
 			view_bind_group,
 		}
@@ -215,8 +251,12 @@ impl Renderer {
 		Mesh::from_obj(path, &self.device)
 	}
 
-	pub fn create_model(&self, mesh: Mesh, transform: Transform) -> Model {
-		Model::new(mesh, transform, &self.device, &self.model_bind_group_layout)
+	pub fn create_model(&self, mesh: Mesh, transform: Transform, material: Material) -> Model {
+		Model::new(mesh, transform, material, &self.device, &self.model_bind_group_layout)
+	}
+
+	pub fn create_material_from_texture(&self, path: &str) -> Material {
+		Material::from_texture(path, &self.device, &self.queue, &self.material_bind_group_layout)
 	}
 
 	pub fn render_scene(&mut self, scene: &Scene) {
@@ -272,7 +312,14 @@ impl Renderer {
 			render_pass.set_bind_group(0, &self.view_bind_group, &[]);
 
 			for model in &scene.models {
-				render_pass.set_bind_group(1, &model.model_bind_group, &[]);
+				render_pass.set_bind_group(
+					1,
+					&model
+						.material
+						.material_bind_group,
+					&[],
+				);
+				render_pass.set_bind_group(2, &model.model_bind_group, &[]);
 
 				render_pass.set_vertex_buffer(
 					0,

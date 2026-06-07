@@ -37,15 +37,12 @@ impl Mesh {
 		let vertices: Vec<Vertex> = mesh
 			.positions
 			.chunks(3)
-			.map(|c| {
-				Vertex::new(
-					c[0],
-					c[1],
-					c[2],
-					rand::random::<f32>(),
-					rand::random::<f32>(),
-					rand::random::<f32>(),
-				)
+			.enumerate()
+			.map(|(i, c)| {
+				let u = mesh.texcoords[i * 2];
+				let v = mesh.texcoords[i * 2 + 1];
+
+				Vertex::new(c[0], c[1], c[2], u, v)
 			})
 			.collect();
 

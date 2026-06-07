@@ -1,0 +1,81 @@
+use wgpu::{Device, Queue};
+
+pub struct Material {
+	pub texture: wgpu::Texture,
+	pub sampler: wgpu::Sampler,
+	pub material_bind_group: wgpu::BindGroup,
+}
+
+impl Material {
+	pub fn from_texture(
+		path: &str,
+		device: &Device,
+		queue: &Queue,
+		material_bind_group_layout: &wgpu::BindGroupLayout,
+	) -> Self {
+		let img = image::open(path)
+			.unwrap()
+			.to_rgba8();
+
+		let size = wgpu::Extent3d {
+			width: img.width(),
+			height: img.height(),
+			depth_or_array_layers: 1,
+		};
+
+		let texture = device.create_texture(&wgpu::TextureDescriptor {
+			label: Some("Texture"),
+			size,
+			mip_level_count: 1,
+			sample_count: 1,
+			dimension: wgpu::TextureDimension::D2,
+			format: wgpu::TextureFormat::Rgba8UnormSrgb,
+			usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+			view_formats: &[],
+		});
+		let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+		let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+			label: Some("Texture Sampler"),
+			address_mode_u: wgpu::AddressMode::Repeat,
+			address_mode_v: wgpu::AddressMode::Repeat,
+			address_mode_w: wgpu::AddressMode::Repeat,
+			mag_filter: wgpu::FilterMode::Linear,
+			min_filter: wgpu::FilterMode::Linear,
+			mipmap_filter: wgpu::MipmapFilterMode::Linear,
+			..Default::default()
+		});
+
+		queue.write_texture(
+			texture.as_image_copy(),
+			&img,
+			wgpu::TexelCopyBufferLayout {
+				offset: 0,
+				bytes_per_row: Some(4 * img.width()),
+				rows_per_image: Some(img.height()),
+			},
+			size,
+		);
+
+		let material_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+			label: Some("Material Bind Group"),
+			layout: material_bind_group_layout,
+			entries: &[
+				wgpu::BindGroupEntry {
+					binding: 0,
+					resource: wgpu::BindingResource::TextureView(&view),
+				},
+				wgpu::BindGroupEntry {
+					binding: 1,
+					resource: wgpu::BindingResource::Sampler(&sampler),
+				},
+			],
+		});
+
+		Self {
+			texture,
+			sampler,
+			material_bind_group,
+		}
+	}
+}
