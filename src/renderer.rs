@@ -31,7 +31,7 @@ pub struct Renderer {
 }
 
 impl Renderer {
-	pub fn new(window: &Window) -> Self {
+	pub fn new(window: &Window, vsync: bool) -> Self {
 		let size = window.size();
 
 		let instance = wgpu::Instance::default();
@@ -75,7 +75,11 @@ impl Renderer {
 			format: surface_format,
 			width: size.0,
 			height: size.1,
-			present_mode: wgpu::PresentMode::Fifo,
+			present_mode: if vsync {
+				wgpu::PresentMode::Fifo
+			} else {
+				wgpu::PresentMode::Immediate
+			},
 			alpha_mode: alpha_mode,
 			view_formats: vec![],
 			desired_maximum_frame_latency: 2,

@@ -46,7 +46,7 @@ fn main() {
 	let mut camera = Camera::new(FOV, aspect, 0.1, 100_f32);
 	camera.position = Vec3::new(0_f32, 0_f32, 10_f32);
 
-	let mut renderer = Renderer::new(&window);
+	let mut renderer = Renderer::new(&window, true);
 	renderer.update_camera(&camera);
 
 	let car1_mesh = renderer.create_mesh_from_obj("models/car1.obj");
