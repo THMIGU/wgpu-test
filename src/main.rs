@@ -15,12 +15,15 @@ use glam::{Quat, Vec3};
 use sdl3::{event::Event, keyboard::Scancode};
 use std::time::{Duration, Instant};
 
-use crate::{camera::Camera, fps::FPS, renderer::Renderer, scene::Scene, transform::Transform};
+use crate::{
+	camera::Camera, fps::FPS, renderer::Renderer, scene::Scene, transform::Transform,
+	vertex::Vertex,
+};
 
 const TICK_RATE: f64 = 60_f64;
 
-const WINDOW_WIDTH: u32 = 800;
-const WINDOW_HEIGHT: u32 = 600;
+const WINDOW_WIDTH: u32 = 2560;
+const WINDOW_HEIGHT: u32 = 1440;
 
 const FOV: f32 = 70_f32.to_radians();
 
@@ -43,29 +46,54 @@ fn main() {
 		.unwrap();
 
 	let aspect = WINDOW_WIDTH as f32 / WINDOW_HEIGHT as f32;
-	let mut camera = Camera::new(FOV, aspect, 0.1, 100_f32);
+	let mut camera = Camera::new(FOV, aspect, 0.1, 1000_f32);
 	camera.position = Vec3::new(0_f32, 0_f32, 10_f32);
 
 	let mut renderer = Renderer::new(&window, true);
 	renderer.update_camera(&camera);
 
-	let car1_mesh = renderer.create_mesh_from_obj("models/car1.obj");
-	let car1_material = renderer.create_material_from_texture("textures/car1.png");
+	let car1_mesh = renderer.create_mesh_from_obj("assets/models/car1.obj");
+	let car1_material = renderer.create_material_from_texture("assets/textures/car1.png");
 	let car1_model = renderer.create_model(
 		car1_mesh,
-		Transform::new(Vec3::ZERO, Quat::IDENTITY, Vec3::ONE),
+		Transform::new(Vec3::new(-2.5_f32, 0_f32, 0_f32), Quat::IDENTITY, Vec3::ONE),
 		car1_material,
 	);
 
-	let car2_mesh = renderer.create_mesh_from_obj("models/car2.obj");
-	let car2_material = renderer.create_material_from_texture("textures/car2.png");
+	let car2_mesh = renderer.create_mesh_from_obj("assets/models/car2.obj");
+	let car2_material = renderer.create_material_from_texture("assets/textures/car2.png");
 	let car2_model = renderer.create_model(
 		car2_mesh,
-		Transform::new(Vec3::new(5_f32, 0_f32, 0_f32), Quat::IDENTITY, Vec3::ONE),
+		Transform::new(Vec3::new(2.5_f32, 0_f32, 0_f32), Quat::IDENTITY, Vec3::ONE),
 		car2_material,
 	);
 
-	let scene = Scene::new(vec![car1_model, car2_model]);
+	let cube_mesh = renderer.create_mesh_from_obj("assets/models/cube.obj");
+	let cube_material = renderer.create_material_from_texture("assets/textures/cube.png");
+	let cube_model = renderer.create_model(
+		cube_mesh,
+		Transform::new(Vec3::ZERO, Quat::IDENTITY, Vec3::splat(100_f32)),
+		cube_material,
+	);
+
+	let plane_vertices = vec![
+		Vertex::new(-1.0_f32, 0.0_f32, -1.0_f32, 0.0_f32, 0.0_f32),
+		Vertex::new(1.0_f32, 0.0_f32, -1.0_f32, 1.0_f32, 0.0_f32),
+		Vertex::new(1.0_f32, 0.0_f32, 1.0_f32, 1.0_f32, 1.0_f32),
+		Vertex::new(-1.0_f32, 0.0_f32, 1.0_f32, 0.0_f32, 1.0_f32),
+	];
+
+	let plane_indices: Vec<u32> = vec![0, 2, 1, 0, 3, 2];
+
+	let plane_mesh = renderer.create_mesh(plane_vertices, plane_indices);
+	let plane_material = renderer.create_material_from_texture("assets/textures/asphalt.png");
+	let plane_model = renderer.create_model(
+		plane_mesh,
+		Transform::new(Vec3::ZERO, Quat::IDENTITY, Vec3::splat(10.0_f32)),
+		plane_material,
+	);
+
+	let mut scene = Scene::new(vec![car1_model, car2_model, cube_model, plane_model]);
 
 	let mut last_frame = Instant::now();
 	let mut accumulator = Duration::new(0, 0);
@@ -135,6 +163,10 @@ fn main() {
 
 			camera.rotation = pitch * camera.rotation;
 			camera.rotation = yaw * camera.rotation;
+
+			let cube = &mut scene.models[2];
+
+			cube.transform.position = camera.position;
 
 			renderer.update_camera(&camera);
 
