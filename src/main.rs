@@ -52,8 +52,8 @@ fn main() {
 	let mut renderer = Renderer::new(&window);
 	renderer.update_camera(&camera);
 
-	let cube_mesh = renderer.create_mesh_from_obj("models/cube.obj");
-	let cube_material = renderer.create_material_from_texture("textures/cube.png");
+	let cube_mesh = renderer.create_mesh_from_obj("models/car.obj");
+	let cube_material = renderer.create_material_from_texture("textures/car.png");
 	let cube_model = renderer.create_model(
 		cube_mesh,
 		Transform::new(Vec3::ZERO, Quat::IDENTITY, Vec3::ONE),
