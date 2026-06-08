@@ -1,3 +1,4 @@
+use glam::{Vec2, Vec3};
 use wgpu::{Device, util::DeviceExt};
 
 use crate::vertex::Vertex;
@@ -39,10 +40,14 @@ impl Mesh {
 			.chunks(3)
 			.enumerate()
 			.map(|(i, c)| {
+				let x = mesh.normals[i * 3];
+				let y = mesh.normals[i * 3 + 1];
+				let z = mesh.normals[i * 3 + 2];
+
 				let u = mesh.texcoords[i * 2];
 				let v = mesh.texcoords[i * 2 + 1];
 
-				Vertex::new(c[0], c[1], c[2], u, v)
+				Vertex::new(Vec3::new(c[0], c[1], c[2]), Vec3::new(x, y, z), Vec2::new(u, v))
 			})
 			.collect();
 

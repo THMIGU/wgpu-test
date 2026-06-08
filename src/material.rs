@@ -1,15 +1,36 @@
+use bytemuck::{Pod, Zeroable};
 use image::imageops;
-use wgpu::{Device, Queue};
+use wgpu::{Device, Queue, util::DeviceExt};
+
+#[repr(C)]
+#[derive(Clone, Copy, Pod, Zeroable)]
+pub struct MaterialParams {
+	lit: u32,
+}
+
+impl MaterialParams {
+	pub fn new(lit: bool) -> Self {
+		Self {
+			lit: if lit {
+				1
+			} else {
+				0
+			},
+		}
+	}
+}
 
 pub struct Material {
 	pub texture: wgpu::Texture,
 	pub sampler: wgpu::Sampler,
+	pub material_storage_buffer: wgpu::Buffer,
 	pub material_bind_group: wgpu::BindGroup,
 }
 
 impl Material {
 	pub fn from_texture(
 		path: &str,
+		lit: bool,
 		device: &Device,
 		queue: &Queue,
 		material_bind_group_layout: &wgpu::BindGroupLayout,
@@ -59,6 +80,13 @@ impl Material {
 			size,
 		);
 
+		let material_storage_buffer =
+			device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+				label: Some("Material Storage Buffer"),
+				contents: bytemuck::cast_slice(&[MaterialParams::new(lit)]),
+				usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+			});
+
 		let material_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
 			label: Some("Material Bind Group"),
 			layout: material_bind_group_layout,
@@ -71,12 +99,17 @@ impl Material {
 					binding: 1,
 					resource: wgpu::BindingResource::Sampler(&sampler),
 				},
+				wgpu::BindGroupEntry {
+					binding: 2,
+					resource: material_storage_buffer.as_entire_binding(),
+				},
 			],
 		});
 
 		Self {
 			texture,
 			sampler,
+			material_storage_buffer,
 			material_bind_group,
 		}
 	}

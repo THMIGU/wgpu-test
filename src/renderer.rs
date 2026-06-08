@@ -1,6 +1,7 @@
 use crate::{
 	camera::Camera,
-	material::{self, Material},
+	light::{LightType, LightUniform},
+	material::Material,
 	mesh::Mesh,
 	model::Model,
 	scene::Scene,
@@ -9,7 +10,7 @@ use crate::{
 	vertex::Vertex,
 };
 
-use glam::Mat4;
+use glam::{Mat4, Vec3};
 use sdl3::video::Window;
 use wgpu::{
 	rwh::{HasDisplayHandle, HasWindowHandle},
@@ -25,9 +26,10 @@ pub struct Renderer {
 	depth_view: wgpu::TextureView,
 	render_pipeline: wgpu::RenderPipeline,
 	view_uniform_buffer: wgpu::Buffer,
+	light_uniform_buffer: wgpu::Buffer,
 	material_bind_group_layout: wgpu::BindGroupLayout,
 	model_bind_group_layout: wgpu::BindGroupLayout,
-	view_bind_group: wgpu::BindGroup,
+	scene_bind_group: wgpu::BindGroup,
 }
 
 impl Renderer {
@@ -105,23 +107,40 @@ impl Renderer {
 
 		let view_uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
 			label: Some("View Uniform Buffer"),
-			contents: bytemuck::cast_slice(&[Uniform::new(Mat4::IDENTITY.to_cols_array_2d())]),
+			contents: bytemuck::cast_slice(&[Uniform::new(Mat4::IDENTITY)]),
+			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+		});
+		let light_uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+			label: Some("Light Uniform Buffer"),
+			contents: bytemuck::cast_slice(&[LightUniform::new(Vec3::ZERO, Vec3::ONE, 1_f32)]),
 			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
 		});
 
-		let view_bind_group_layout =
+		let scene_bind_group_layout =
 			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-				label: Some("View Bind Group Layout"),
-				entries: &[wgpu::BindGroupLayoutEntry {
-					binding: 0,
-					visibility: wgpu::ShaderStages::VERTEX,
-					ty: wgpu::BindingType::Buffer {
-						ty: wgpu::BufferBindingType::Uniform,
-						has_dynamic_offset: false,
-						min_binding_size: None,
+				label: Some("Scene Bind Group Layout"),
+				entries: &[
+					wgpu::BindGroupLayoutEntry {
+						binding: 0,
+						visibility: wgpu::ShaderStages::VERTEX,
+						ty: wgpu::BindingType::Buffer {
+							ty: wgpu::BufferBindingType::Uniform,
+							has_dynamic_offset: false,
+							min_binding_size: None,
+						},
+						count: None,
 					},
-					count: None,
-				}],
+					wgpu::BindGroupLayoutEntry {
+						binding: 1,
+						visibility: wgpu::ShaderStages::FRAGMENT,
+						ty: wgpu::BindingType::Buffer {
+							ty: wgpu::BufferBindingType::Uniform,
+							has_dynamic_offset: false,
+							min_binding_size: None,
+						},
+						count: None,
+					},
+				],
 			});
 		let material_bind_group_layout =
 			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -145,6 +164,18 @@ impl Renderer {
 						ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
 						count: None,
 					},
+					wgpu::BindGroupLayoutEntry {
+						binding: 2,
+						visibility: wgpu::ShaderStages::FRAGMENT,
+						ty: wgpu::BindingType::Buffer {
+							ty: wgpu::BufferBindingType::Storage {
+								read_only: true,
+							},
+							has_dynamic_offset: false,
+							min_binding_size: None,
+						},
+						count: None,
+					},
 				],
 			});
 		let model_bind_group_layout =
@@ -152,7 +183,7 @@ impl Renderer {
 				label: Some("Model Bind Group Layout"),
 				entries: &[wgpu::BindGroupLayoutEntry {
 					binding: 0,
-					visibility: wgpu::ShaderStages::VERTEX,
+					visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
 					ty: wgpu::BindingType::Buffer {
 						ty: wgpu::BufferBindingType::Uniform,
 						has_dynamic_offset: false,
@@ -162,13 +193,19 @@ impl Renderer {
 				}],
 			});
 
-		let view_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-			label: Some("View Bind Group"),
-			layout: &view_bind_group_layout,
-			entries: &[wgpu::BindGroupEntry {
-				binding: 0,
-				resource: view_uniform_buffer.as_entire_binding(),
-			}],
+		let scene_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+			label: Some("Scene Bind Group"),
+			layout: &scene_bind_group_layout,
+			entries: &[
+				wgpu::BindGroupEntry {
+					binding: 0,
+					resource: view_uniform_buffer.as_entire_binding(),
+				},
+				wgpu::BindGroupEntry {
+					binding: 1,
+					resource: light_uniform_buffer.as_entire_binding(),
+				},
+			],
 		});
 
 		let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -179,7 +216,7 @@ impl Renderer {
 		let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
 			label: Some("Pipeline Layout"),
 			bind_group_layouts: &[
-				Some(&view_bind_group_layout),
+				Some(&scene_bind_group_layout),
 				Some(&material_bind_group_layout),
 				Some(&model_bind_group_layout),
 			],
@@ -230,18 +267,15 @@ impl Renderer {
 			depth_view,
 			render_pipeline,
 			view_uniform_buffer,
+			light_uniform_buffer,
 			material_bind_group_layout,
 			model_bind_group_layout,
-			view_bind_group,
+			scene_bind_group,
 		}
 	}
 
 	pub fn update_camera(&mut self, camera: &Camera) {
-		let uniform = Uniform::new(
-			camera
-				.view_proj_matrix()
-				.to_cols_array_2d(),
-		);
+		let uniform = Uniform::new(camera.view_proj_matrix());
 
 		self.queue
 			.write_buffer(&self.view_uniform_buffer, 0, bytemuck::cast_slice(&[uniform]));
@@ -259,8 +293,14 @@ impl Renderer {
 		Model::new(mesh, transform, material, &self.device, &self.model_bind_group_layout)
 	}
 
-	pub fn create_material_from_texture(&self, path: &str) -> Material {
-		Material::from_texture(path, &self.device, &self.queue, &self.material_bind_group_layout)
+	pub fn create_material_from_texture(&self, path: &str, lit: bool) -> Material {
+		Material::from_texture(
+			path,
+			lit,
+			&self.device,
+			&self.queue,
+			&self.material_bind_group_layout,
+		)
 	}
 
 	pub fn render_scene(&mut self, scene: &Scene) {
@@ -313,7 +353,15 @@ impl Renderer {
 			});
 			render_pass.set_pipeline(&self.render_pipeline);
 
-			render_pass.set_bind_group(0, &self.view_bind_group, &[]);
+			match scene.lights[0] {
+				LightType::DirectionalLight(light) => self.queue.write_buffer(
+					&self.light_uniform_buffer,
+					0,
+					bytemuck::cast_slice(&[light]),
+				),
+			};
+
+			render_pass.set_bind_group(0, &self.scene_bind_group, &[]);
 
 			for model in &scene.models {
 				render_pass.set_bind_group(
@@ -340,12 +388,7 @@ impl Renderer {
 					wgpu::IndexFormat::Uint32,
 				);
 
-				let uniform = Uniform::new(
-					model
-						.transform
-						.matrix()
-						.to_cols_array_2d(),
-				);
+				let uniform = Uniform::new(model.transform.matrix());
 
 				self.queue.write_buffer(
 					&model.model_uniform_buffer,

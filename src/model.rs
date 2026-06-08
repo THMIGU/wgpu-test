@@ -21,7 +21,7 @@ impl Model {
 	) -> Self {
 		let model_uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
 			label: Some("Model Uniform Buffer"),
-			contents: bytemuck::cast_slice(&[Uniform::new(Mat4::IDENTITY.to_cols_array_2d())]),
+			contents: bytemuck::cast_slice(&[Uniform::new(Mat4::IDENTITY)]),
 			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
 		});
 
