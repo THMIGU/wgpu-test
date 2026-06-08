@@ -12,7 +12,7 @@ mod transform;
 mod uniform;
 mod vertex;
 
-use glam::{Quat, Vec2, Vec3};
+use glam::{Quat, Vec2, Vec3, Vec3Swizzles};
 use sdl3::{event::Event, keyboard::Scancode};
 use std::time::{Duration, Instant};
 
@@ -99,7 +99,7 @@ fn main() {
 		plane_material,
 	);
 
-	let sun = LightUniform::new(Vec3::new(1.2, 0.5, -1_f32).normalize(), Vec3::ONE, 1_f32);
+	let sun = LightUniform::new(Vec3::new(-1.2, -0.5, 1_f32).normalize(), Vec3::ONE, 1_f32);
 	let mut scene = Scene::new(
 		vec![car1_model, car2_model, cube_model, plane_model],
 		vec![LightType::DirectionalLight(sun)],
@@ -191,7 +191,10 @@ fn main() {
 		let display_fps = fps.fps(frame_duration);
 
 		window
-			.set_title(&format!("wgpu-test | {:.0} FPS", display_fps))
+			.set_title(&format!(
+				"wgpu-test | {:.0} FPS | x: {:.2} y: {:.2} z: {:.2}",
+				display_fps, camera.position.x, camera.position.y, camera.position.z
+			))
 			.unwrap();
 
 		renderer.render_scene(&scene);

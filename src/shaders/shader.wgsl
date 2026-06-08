@@ -65,7 +65,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 	if (material_params.lit == 1) {
 		let normal = in.normal;
 
-		let direction = light_uniform.direction;
+		let direction = -light_uniform.direction;
 		let light_color = light_uniform.color;
 		let intensity = light_uniform.intensity;
 
