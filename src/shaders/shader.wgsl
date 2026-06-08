@@ -47,7 +47,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 		input.position,
 		1.0
 	);
-	out.normal = input.normal;
+	out.normal = (model_uniform.mat * vec4<f32>(input.normal, 0.0)).xyz;
 	out.uv = input.uv;
 
 	return out;
@@ -69,7 +69,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 		let light_color = light_uniform.color;
 		let intensity = light_uniform.intensity;
 
-		let n = normalize((model_uniform.mat * vec4<f32>(normal, 0.0)).xyz);
+		let n = normalize(normal);
 		let l = normalize(direction);
 
 		let diffuse = max(dot(n, l), 0.0);
