@@ -1,7 +1,7 @@
 use glam::Mat4;
 use wgpu::{Device, util::DeviceExt};
 
-use crate::{material::Material, mesh::Mesh, transform::Transform, uniform::Uniform};
+use crate::renderer::{material::Material, mesh::Mesh, transform::Transform, uniform::Uniform};
 
 pub struct Model {
 	pub mesh: Mesh,

@@ -1,29 +1,22 @@
 // #![windows_subsystem = "windows"]
 
-mod camera;
 mod fps;
-mod light;
-mod material;
-mod mesh;
-mod model;
 mod renderer;
-mod scene;
-mod transform;
-mod uniform;
-mod vertex;
 
-use glam::{Quat, Vec2, Vec3, Vec3Swizzles};
+use glam::{Quat, Vec2, Vec3};
 use sdl3::{event::Event, keyboard::Scancode};
 use std::time::{Duration, Instant};
 
 use crate::{
-	camera::Camera,
 	fps::FPS,
-	light::{LightType, LightUniform},
-	renderer::Renderer,
-	scene::Scene,
-	transform::Transform,
-	vertex::Vertex,
+	renderer::{
+		camera::Camera,
+		light::{LightType, LightUniform},
+		renderer::Renderer,
+		scene::Scene,
+		transform::Transform,
+		vertex::Vertex,
+	},
 };
 
 const TICK_RATE: f64 = 60_f64;
@@ -99,7 +92,11 @@ fn main() {
 		plane_material,
 	);
 
-	let sun = LightUniform::new(Vec3::new(-1.2, -0.5, 1_f32).normalize(), Vec3::ONE, 1_f32);
+	let sun = LightUniform::new(
+		Vec3::new(-1.2, -0.5, 1_f32).normalize(),
+		Vec3::new(1_f32, 0.85, 0.54),
+		1_f32,
+	);
 	let mut scene = Scene::new(
 		vec![car1_model, car2_model, cube_model, plane_model],
 		vec![LightType::DirectionalLight(sun)],
@@ -139,34 +136,38 @@ fn main() {
 			let forward = Vec3::new(camera_yaw.sin(), 0_f32, camera_yaw.cos());
 			let right = Vec3::new(forward.z, 0_f32, -forward.x);
 			let up = Vec3::new(0_f32, 1_f32, 0_f32);
-			let speed = 5_f32 / 60_f32;
+			let speed = 7.5_f32 / 60_f32;
+
+			let mut movement = Vec3::ZERO;
 
 			if keyboard.is_scancode_pressed(Scancode::S) {
-				camera.position += forward * speed;
+				movement += forward;
 			}
 			if keyboard.is_scancode_pressed(Scancode::W) {
-				camera.position -= forward * speed;
+				movement -= forward;
 			}
 			if keyboard.is_scancode_pressed(Scancode::D) {
-				camera.position += right * speed;
+				movement += right;
 			}
 			if keyboard.is_scancode_pressed(Scancode::A) {
-				camera.position -= right * speed;
+				movement -= right;
 			}
 
 			if keyboard.is_scancode_pressed(Scancode::Space) {
-				camera.position += up * speed;
+				movement += up;
 			}
 			if keyboard.is_scancode_pressed(Scancode::LShift) {
-				camera.position -= up * speed;
+				movement -= up;
 			}
+
+			camera.position += movement.normalize_or_zero() * speed;
 
 			let mouse = event_pump.relative_mouse_state();
 
 			let x = mouse.x();
 			let y = mouse.y();
 
-			let sensitivity = 0.005;
+			let sensitivity = 0.0025;
 
 			let yaw = Quat::from_rotation_y(-x as f32 * sensitivity);
 

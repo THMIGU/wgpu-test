@@ -1,4 +1,4 @@
-use crate::{light::LightType, model::Model};
+use crate::renderer::{light::LightType, model::Model};
 
 pub struct Scene {
 	pub models: Vec<Model>,

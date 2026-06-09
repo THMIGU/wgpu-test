@@ -1,4 +1,4 @@
-use crate::{
+use crate::renderer::{
 	camera::Camera,
 	light::{LightType, LightUniform},
 	material::Material,
@@ -208,9 +208,13 @@ impl Renderer {
 			],
 		});
 
-		let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-			label: Some("Triangle Shader"),
-			source: wgpu::ShaderSource::Wgsl(include_str!("shaders/shader.wgsl").into()),
+		let vertex_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+			label: Some("Vertex Shader"),
+			source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/vertex.wgsl").into()),
+		});
+		let fragment_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+			label: Some("Fragment Shader"),
+			source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/fragment.wgsl").into()),
 		});
 
 		let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -224,16 +228,16 @@ impl Renderer {
 		});
 
 		let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-			label: Some("Triangle Pipeline"),
+			label: Some("Render Pipeline"),
 			layout: Some(&pipeline_layout),
 			vertex: wgpu::VertexState {
-				module: &shader,
+				module: &vertex_shader,
 				entry_point: Some("vs_main"),
 				buffers: &[Vertex::desc()],
 				compilation_options: Default::default(),
 			},
 			fragment: Some(wgpu::FragmentState {
-				module: &shader,
+				module: &fragment_shader,
 				entry_point: Some("fs_main"),
 				compilation_options: Default::default(),
 				targets: &[Some(wgpu::ColorTargetState {
