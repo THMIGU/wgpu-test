@@ -3,20 +3,13 @@
 mod fps;
 mod renderer;
 
-use glam::{Quat, Vec2, Vec3};
+use glam::{Quat, Vec3};
 use sdl3::{event::Event, keyboard::Scancode};
 use std::time::{Duration, Instant};
 
 use crate::{
 	fps::FPS,
-	renderer::{
-		camera::Camera,
-		light::{LightType, LightUniform},
-		renderer::Renderer,
-		scene::Scene,
-		transform::Transform,
-		vertex::Vertex,
-	},
+	renderer::{camera::Camera, renderer::Renderer, scene::Scene},
 };
 
 const TICK_RATE: f64 = 60_f64;
@@ -51,56 +44,7 @@ fn main() {
 	let mut renderer = Renderer::new(&window, true);
 	renderer.update_camera(&camera);
 
-	let car1_mesh = renderer.create_mesh_from_obj("assets/models/car1.obj");
-	let car1_material = renderer.create_material_from_texture("assets/textures/car1.png", true);
-	let car1_model = renderer.create_model(
-		car1_mesh,
-		Transform::new(Vec3::new(-2.5, 0_f32, 0_f32), Quat::IDENTITY, Vec3::ONE),
-		car1_material,
-	);
-
-	let car2_mesh = renderer.create_mesh_from_obj("assets/models/car2.obj");
-	let car2_material = renderer.create_material_from_texture("assets/textures/car2.png", true);
-	let car2_model = renderer.create_model(
-		car2_mesh,
-		Transform::new(Vec3::new(2.5, 0_f32, 0_f32), Quat::IDENTITY, Vec3::ONE),
-		car2_material,
-	);
-
-	let cube_mesh = renderer.create_mesh_from_obj("assets/models/cube.obj");
-	let cube_material = renderer.create_material_from_texture("assets/textures/cube.png", false);
-	let cube_model = renderer.create_model(
-		cube_mesh,
-		Transform::new(Vec3::ZERO, Quat::IDENTITY, Vec3::splat(100_f32)),
-		cube_material,
-	);
-
-	let plane_vertices = vec![
-		Vertex::new(Vec3::new(-1.0, 0.0, -1.0), Vec3::new(0.0, 1.0, 0.0), Vec2::new(0.0, 0.0)),
-		Vertex::new(Vec3::new(1.0, 0.0, -1.0), Vec3::new(0.0, 1.0, 0.0), Vec2::new(1.0, 0.0)),
-		Vertex::new(Vec3::new(1.0, 0.0, 1.0), Vec3::new(0.0, 1.0, 0.0), Vec2::new(1.0, 1.0)),
-		Vertex::new(Vec3::new(-1.0, 0.0, 1.0), Vec3::new(0.0, 1.0, 0.0), Vec2::new(0.0, 1.0)),
-	];
-
-	let plane_indices: Vec<u32> = vec![0, 2, 1, 0, 3, 2];
-
-	let plane_mesh = renderer.create_mesh(plane_vertices, plane_indices);
-	let plane_material = renderer.create_material_from_texture("assets/textures/asphalt.png", true);
-	let plane_model = renderer.create_model(
-		plane_mesh,
-		Transform::new(Vec3::ZERO, Quat::IDENTITY, Vec3::splat(10_f32)),
-		plane_material,
-	);
-
-	let sun = LightUniform::new(
-		Vec3::new(-1.2, -0.5, 1_f32).normalize(),
-		Vec3::new(1_f32, 0.85, 0.54),
-		1_f32,
-	);
-	let mut scene = Scene::new(
-		vec![car1_model, car2_model, cube_model, plane_model],
-		vec![LightType::DirectionalLight(sun)],
-	);
+	let mut scene = Scene::demo(&renderer);
 
 	let mut angle = 0_f32;
 
