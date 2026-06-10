@@ -1,12 +1,14 @@
+use std::sync::Arc;
+
 use glam::Mat4;
 use wgpu::{Device, util::DeviceExt};
 
-use crate::renderer::{material::Material, mesh::Mesh, transform::Transform, uniform::Uniform};
+use crate::renderer::{mesh::Mesh, texture::Texture, transform::Transform, uniform::Uniform};
 
 pub struct Model {
 	pub mesh: Mesh,
 	pub transform: Transform,
-	pub material: Material,
+	pub texture: Arc<Texture>,
 	pub model_uniform_buffer: wgpu::Buffer,
 	pub model_bind_group: wgpu::BindGroup,
 }
@@ -15,7 +17,7 @@ impl Model {
 	pub fn new(
 		mesh: Mesh,
 		transform: Transform,
-		material: Material,
+		texture: Arc<Texture>,
 		device: &Device,
 		model_bind_group_layout: &wgpu::BindGroupLayout,
 	) -> Self {
@@ -37,7 +39,7 @@ impl Model {
 		Self {
 			mesh,
 			transform,
-			material,
+			texture,
 			model_uniform_buffer,
 			model_bind_group,
 		}

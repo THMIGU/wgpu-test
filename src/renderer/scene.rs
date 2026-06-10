@@ -23,15 +23,15 @@ impl Scene {
 
 	pub fn demo(renderer: &Renderer) -> Self {
 		let car1_mesh = renderer.create_mesh_from_obj("assets/models/car1.obj");
-		let car1_material = renderer.create_material_from_texture("assets/textures/car1.png", true);
+		let car1_material = renderer.create_texture("assets/textures/car1.png");
 		let car1_model = renderer.create_model(
 			car1_mesh,
 			Transform::new(Vec3::new(-2.5, 0_f32, 0_f32), Quat::IDENTITY, Vec3::ONE),
 			car1_material,
 		);
 
-		let car2_mesh = renderer.create_mesh_from_obj("assets/models/car2.obj");
-		let car2_material = renderer.create_material_from_texture("assets/textures/car2.png", true);
+		let car2_mesh = renderer.create_mesh_from_obj("assets/models/car2_sep.obj");
+		let car2_material = renderer.create_texture("assets/textures/car2.png");
 		let car2_model = renderer.create_model(
 			car2_mesh,
 			Transform::new(Vec3::new(2.5, 0_f32, 0_f32), Quat::IDENTITY, Vec3::ONE),
@@ -39,8 +39,7 @@ impl Scene {
 		);
 
 		let cube_mesh = renderer.create_mesh_from_obj("assets/models/cube.obj");
-		let cube_material =
-			renderer.create_material_from_texture("assets/textures/cube.png", false);
+		let cube_material = renderer.create_texture("assets/textures/cube.png");
 		let cube_model = renderer.create_model(
 			cube_mesh,
 			Transform::new(Vec3::ZERO, Quat::IDENTITY, Vec3::splat(100_f32)),
@@ -53,12 +52,10 @@ impl Scene {
 			Vertex::new(Vec3::new(1.0, 0.0, 1.0), Vec3::new(0.0, 1.0, 0.0), Vec2::new(1.0, 1.0)),
 			Vertex::new(Vec3::new(-1.0, 0.0, 1.0), Vec3::new(0.0, 1.0, 0.0), Vec2::new(0.0, 1.0)),
 		];
-
 		let plane_indices: Vec<u32> = vec![0, 2, 1, 0, 3, 2];
 
 		let plane_mesh = renderer.create_mesh(plane_vertices, plane_indices);
-		let plane_material =
-			renderer.create_material_from_texture("assets/textures/asphalt.png", true);
+		let plane_material = renderer.create_texture("assets/textures/asphalt.png");
 		let plane_model = renderer.create_model(
 			plane_mesh,
 			Transform::new(Vec3::ZERO, Quat::IDENTITY, Vec3::splat(10_f32)),

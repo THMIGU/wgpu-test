@@ -10,10 +10,6 @@ struct LightUniform {
 	intensity: f32,
 }
 
-struct MaterialParams {
-	lit: u32,
-}
-
 @group(0) @binding(1)
 var<uniform> light_uniform: LightUniform;
 
@@ -21,8 +17,6 @@ var<uniform> light_uniform: LightUniform;
 var diffuse_texture: texture_2d<f32>;
 @group(1) @binding(1)
 var diffuse_sampler: sampler;
-@group(1) @binding(2)
-var<storage> material_params: MaterialParams;
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
@@ -33,21 +27,17 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 		in.uv
 	);
 
-	if (material_params.lit == 1) {
-		let normal = in.normal;
+	let normal = in.normal;
 
-		let direction = -light_uniform.direction;
-		let light_color = light_uniform.color;
-		let intensity = light_uniform.intensity;
+	let direction = -light_uniform.direction;
+	let light_color = light_uniform.color;
+	let intensity = light_uniform.intensity;
 
-		let n = normalize(normal);
-		let l = normalize(direction);
+	let n = normalize(normal);
+	let l = normalize(direction);
 
-		let diffuse = max(dot(n, l), 0.0);
+	let diffuse = max(dot(n, l), 0.0);
 
-		let final_color = base_color.rgb * light_color * (intensity * diffuse + ambient);
-		return vec4<f32>(final_color, 1.0);
-	} else {
-		return base_color;
-	}
+	let final_color = base_color.rgb * light_color * (intensity * diffuse + ambient);
+	return vec4<f32>(final_color, 1.0);
 }

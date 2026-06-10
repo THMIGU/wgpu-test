@@ -1,10 +1,12 @@
+use std::sync::Arc;
+
 use crate::renderer::{
 	camera::Camera,
 	light::{LightType, LightUniform},
-	material::Material,
 	mesh::Mesh,
 	model::Model,
 	scene::Scene,
+	texture::Texture,
 	transform::Transform,
 	uniform::Uniform,
 	vertex::Vertex,
@@ -27,7 +29,7 @@ pub struct Renderer {
 	render_pipeline: wgpu::RenderPipeline,
 	view_uniform_buffer: wgpu::Buffer,
 	light_uniform_buffer: wgpu::Buffer,
-	material_bind_group_layout: wgpu::BindGroupLayout,
+	texture_bind_group_layout: wgpu::BindGroupLayout,
 	model_bind_group_layout: wgpu::BindGroupLayout,
 	scene_bind_group: wgpu::BindGroup,
 }
@@ -142,9 +144,9 @@ impl Renderer {
 					},
 				],
 			});
-		let material_bind_group_layout =
+		let texture_bind_group_layout =
 			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-				label: Some("Material Bind Group Layout"),
+				label: Some("Texture Bind Group Layout"),
 				entries: &[
 					wgpu::BindGroupLayoutEntry {
 						binding: 0,
@@ -162,18 +164,6 @@ impl Renderer {
 						binding: 1,
 						visibility: wgpu::ShaderStages::FRAGMENT,
 						ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-						count: None,
-					},
-					wgpu::BindGroupLayoutEntry {
-						binding: 2,
-						visibility: wgpu::ShaderStages::FRAGMENT,
-						ty: wgpu::BindingType::Buffer {
-							ty: wgpu::BufferBindingType::Storage {
-								read_only: true,
-							},
-							has_dynamic_offset: false,
-							min_binding_size: None,
-						},
 						count: None,
 					},
 				],
@@ -221,7 +211,7 @@ impl Renderer {
 			label: Some("Pipeline Layout"),
 			bind_group_layouts: &[
 				Some(&scene_bind_group_layout),
-				Some(&material_bind_group_layout),
+				Some(&texture_bind_group_layout),
 				Some(&model_bind_group_layout),
 			],
 			immediate_size: 0,
@@ -272,7 +262,7 @@ impl Renderer {
 			render_pipeline,
 			view_uniform_buffer,
 			light_uniform_buffer,
-			material_bind_group_layout,
+			texture_bind_group_layout,
 			model_bind_group_layout,
 			scene_bind_group,
 		}
@@ -293,18 +283,12 @@ impl Renderer {
 		Mesh::from_obj(path, &self.device)
 	}
 
-	pub fn create_model(&self, mesh: Mesh, transform: Transform, material: Material) -> Model {
-		Model::new(mesh, transform, material, &self.device, &self.model_bind_group_layout)
+	pub fn create_model(&self, mesh: Mesh, transform: Transform, texture: Arc<Texture>) -> Model {
+		Model::new(mesh, transform, texture, &self.device, &self.model_bind_group_layout)
 	}
 
-	pub fn create_material_from_texture(&self, path: &str, lit: bool) -> Material {
-		Material::from_texture(
-			path,
-			lit,
-			&self.device,
-			&self.queue,
-			&self.material_bind_group_layout,
-		)
+	pub fn create_texture(&self, path: &str) -> Arc<Texture> {
+		Arc::new(Texture::new(path, &self.device, &self.queue, &self.texture_bind_group_layout))
 	}
 
 	pub fn render_scene(&mut self, scene: &Scene) {
@@ -371,8 +355,8 @@ impl Renderer {
 				render_pass.set_bind_group(
 					1,
 					&model
-						.material
-						.material_bind_group,
+						.texture
+						.texture_bind_group,
 					&[],
 				);
 				render_pass.set_bind_group(2, &model.model_bind_group, &[]);
