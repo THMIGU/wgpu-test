@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use glam::{Quat, Vec2, Vec3};
 
 use crate::renderer::{
@@ -22,28 +24,28 @@ impl Scene {
 	}
 
 	pub fn demo(renderer: &Renderer) -> Self {
-		let car1_mesh = renderer.create_mesh_from_obj("assets/models/car1.obj");
-		let car1_material = renderer.create_texture("assets/textures/car1.png");
+		let car1_mesh = renderer.load_obj("assets/models/car1.obj");
+		let car1_texture = renderer.create_texture("assets/textures/car1.png");
 		let car1_model = renderer.create_model(
 			car1_mesh,
 			Transform::new(Vec3::new(-2.5, 0_f32, 0_f32), Quat::IDENTITY, Vec3::ONE),
-			car1_material,
+			car1_texture,
 		);
 
-		let car2_mesh = renderer.create_mesh_from_obj("assets/models/car2_sep.obj");
-		let car2_material = renderer.create_texture("assets/textures/car2.png");
+		let car2_mesh = renderer.load_obj("assets/models/car2_sep.obj");
+		let car2_texture = renderer.create_texture("assets/textures/car2.png");
 		let car2_model = renderer.create_model(
 			car2_mesh,
 			Transform::new(Vec3::new(2.5, 0_f32, 0_f32), Quat::IDENTITY, Vec3::ONE),
-			car2_material,
+			car2_texture,
 		);
 
-		let cube_mesh = renderer.create_mesh_from_obj("assets/models/cube.obj");
-		let cube_material = renderer.create_texture("assets/textures/cube.png");
+		let cube_mesh = renderer.load_obj("assets/models/cube.obj");
+		let cube_texture = renderer.create_texture("assets/textures/cube.png");
 		let cube_model = renderer.create_model(
 			cube_mesh,
 			Transform::new(Vec3::ZERO, Quat::IDENTITY, Vec3::splat(100_f32)),
-			cube_material,
+			cube_texture,
 		);
 
 		let plane_vertices = vec![
@@ -54,12 +56,15 @@ impl Scene {
 		];
 		let plane_indices: Vec<u32> = vec![0, 2, 1, 0, 3, 2];
 
-		let plane_mesh = renderer.create_mesh(plane_vertices, plane_indices);
-		let plane_material = renderer.create_texture("assets/textures/asphalt.png");
+		let plane_mesh = HashMap::from([(
+			"plane".to_string(),
+			renderer.create_mesh(plane_vertices, plane_indices),
+		)]);
+		let plane_texture = renderer.create_texture("assets/textures/asphalt.png");
 		let plane_model = renderer.create_model(
 			plane_mesh,
 			Transform::new(Vec3::ZERO, Quat::IDENTITY, Vec3::splat(10_f32)),
-			plane_material,
+			plane_texture,
 		);
 
 		let sun = LightUniform::new(
