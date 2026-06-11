@@ -6,7 +6,7 @@ use wgpu::{Device, util::DeviceExt};
 use crate::renderer::{mesh::Mesh, texture::Texture, transform::Transform, uniform::Uniform};
 
 pub struct Model {
-	pub meshes: HashMap<String, Mesh>,
+	pub mesh: Mesh,
 	pub transform: Transform,
 	pub texture: Arc<Texture>,
 	pub model_uniform_buffer: wgpu::Buffer,
@@ -15,7 +15,7 @@ pub struct Model {
 
 impl Model {
 	pub fn new(
-		meshes: HashMap<String, Mesh>,
+		mesh: Mesh,
 		transform: Transform,
 		texture: Arc<Texture>,
 		device: &Device,
@@ -37,7 +37,7 @@ impl Model {
 		});
 
 		Self {
-			meshes,
+			mesh,
 			transform,
 			texture,
 			model_uniform_buffer,

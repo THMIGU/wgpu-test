@@ -56,10 +56,7 @@ impl Scene {
 		];
 		let plane_indices: Vec<u32> = vec![0, 2, 1, 0, 3, 2];
 
-		let plane_mesh = HashMap::from([(
-			"plane".to_string(),
-			renderer.create_mesh(plane_vertices, plane_indices),
-		)]);
+		let plane_mesh = renderer.create_mesh(plane_vertices, plane_indices);
 		let plane_texture = renderer.create_texture("assets/textures/asphalt.png");
 		let plane_model = renderer.create_model(
 			plane_mesh,

@@ -1,5 +1,11 @@
 use glam::{Mat4, Quat, Vec3};
 
+pub const IDENTITY: Transform = Transform {
+	position: Vec3::ZERO,
+	rotation: Quat::IDENTITY,
+	scale: Vec3::ONE,
+};
+
 pub struct Transform {
 	pub position: Vec3,
 	pub rotation: Quat,

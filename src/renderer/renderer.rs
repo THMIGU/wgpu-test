@@ -279,17 +279,12 @@ impl Renderer {
 		Mesh::new(vertices, indices, &self.device)
 	}
 
-	pub fn load_obj(&self, path: &str) -> HashMap<String, Mesh> {
+	pub fn load_obj(&self, path: &str) -> Mesh {
 		Mesh::load_obj(path, &self.device)
 	}
 
-	pub fn create_model(
-		&self,
-		meshes: HashMap<String, Mesh>,
-		transform: Transform,
-		texture: Arc<Texture>,
-	) -> Model {
-		Model::new(meshes, transform, texture, &self.device, &self.model_bind_group_layout)
+	pub fn create_model(&self, mesh: Mesh, transform: Transform, texture: Arc<Texture>) -> Model {
+		Model::new(mesh, transform, texture, &self.device, &self.model_bind_group_layout)
 	}
 
 	pub fn create_texture(&self, path: &str) -> Arc<Texture> {
@@ -366,21 +361,30 @@ impl Renderer {
 				);
 				render_pass.set_bind_group(2, &model.model_bind_group, &[]);
 
-				for mesh in model.meshes.values() {
-					render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
-					render_pass
-						.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+				render_pass.set_vertex_buffer(
+					0,
+					model
+						.mesh
+						.vertex_buffer
+						.slice(..),
+				);
+				render_pass.set_index_buffer(
+					model
+						.mesh
+						.index_buffer
+						.slice(..),
+					wgpu::IndexFormat::Uint32,
+				);
 
-					let uniform = Uniform::new(model.transform.matrix());
+				let uniform = Uniform::new(model.transform.matrix());
 
-					self.queue.write_buffer(
-						&model.model_uniform_buffer,
-						0,
-						bytemuck::cast_slice(&[uniform]),
-					);
+				self.queue.write_buffer(
+					&model.model_uniform_buffer,
+					0,
+					bytemuck::cast_slice(&[uniform]),
+				);
 
-					render_pass.draw_indexed(0..mesh.index_count, 0, 0..1);
-				}
+				render_pass.draw_indexed(0..model.mesh.index_count, 0, 0..1);
 			}
 		}
 
