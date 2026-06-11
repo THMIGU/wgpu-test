@@ -5,7 +5,7 @@ use glam::{Quat, Vec2, Vec3};
 use crate::gfx::{
 	light::{LightType, LightUniform},
 	model::Model,
-	renderer::Renderer,
+	pipeline::Pipeline,
 	transform::Transform,
 	vertex::Vertex,
 };

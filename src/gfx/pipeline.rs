@@ -19,7 +19,7 @@ use wgpu::{
 	util::DeviceExt,
 };
 
-pub struct Renderer {
+pub struct Pipeline {
 	device: wgpu::Device,
 	surface: wgpu::Surface<'static>,
 	queue: wgpu::Queue,
@@ -34,7 +34,7 @@ pub struct Renderer {
 	scene_bind_group: wgpu::BindGroup,
 }
 
-impl Renderer {
+impl Pipeline {
 	pub fn new(window: &Window, vsync: bool) -> Self {
 		let size = window.size();
 
