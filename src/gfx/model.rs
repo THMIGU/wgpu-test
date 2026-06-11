@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use glam::Mat4;
 use wgpu::{Device, util::DeviceExt};
@@ -6,7 +6,7 @@ use wgpu::{Device, util::DeviceExt};
 use crate::gfx::{mesh::Mesh, texture::Texture, transform::Transform, uniform::Uniform};
 
 pub struct Model {
-	pub mesh: Mesh,
+	pub mesh: Arc<Mesh>,
 	pub transform: Transform,
 	pub texture: Arc<Texture>,
 	pub model_uniform_buffer: wgpu::Buffer,
@@ -15,7 +15,7 @@ pub struct Model {
 
 impl Model {
 	pub fn new(
-		mesh: Mesh,
+		mesh: Arc<Mesh>,
 		transform: Transform,
 		texture: Arc<Texture>,
 		device: &Device,

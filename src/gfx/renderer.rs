@@ -275,19 +275,20 @@ impl Renderer {
 			.write_buffer(&self.view_uniform_buffer, 0, bytemuck::cast_slice(&[uniform]));
 	}
 
-	pub fn create_mesh(&self, vertices: Vec<Vertex>, indices: Vec<u32>) -> Mesh {
-		Mesh::new(vertices, indices, &self.device)
+	pub fn load_obj(&self, path: &str) -> Arc<Mesh> {
+		Arc::new(Mesh::load_obj(path, &self.device))
 	}
 
-	pub fn load_obj(&self, path: &str) -> Mesh {
-		Mesh::load_obj(path, &self.device)
-	}
-
-	pub fn create_model(&self, mesh: Mesh, transform: Transform, texture: Arc<Texture>) -> Model {
+	pub fn create_model(
+		&self,
+		mesh: Arc<Mesh>,
+		transform: Transform,
+		texture: Arc<Texture>,
+	) -> Model {
 		Model::new(mesh, transform, texture, &self.device, &self.model_bind_group_layout)
 	}
 
-	pub fn create_texture(&self, path: &str) -> Arc<Texture> {
+	pub fn load_texture(&self, path: &str) -> Arc<Texture> {
 		Arc::new(Texture::new(path, &self.device, &self.queue, &self.texture_bind_group_layout))
 	}
 
