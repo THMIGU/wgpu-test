@@ -1,7 +1,7 @@
 use glam::{Vec2, Vec3};
 use wgpu::{Device, util::DeviceExt};
 
-use crate::renderer::vertex::Vertex;
+use crate::gfx::vertex::Vertex;
 
 pub struct Mesh {
 	pub vertex_buffer: wgpu::Buffer,

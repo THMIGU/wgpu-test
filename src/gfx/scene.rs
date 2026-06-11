@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use glam::{Quat, Vec2, Vec3};
 
-use crate::renderer::{
+use crate::gfx::{
 	light::{LightType, LightUniform},
 	model::Model,
 	renderer::Renderer,

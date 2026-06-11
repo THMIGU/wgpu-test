@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::renderer::{
+use crate::gfx::{
 	camera::Camera,
 	light::{LightType, LightUniform},
 	mesh::Mesh,

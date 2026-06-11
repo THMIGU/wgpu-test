@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use glam::Mat4;
 use wgpu::{Device, util::DeviceExt};
 
-use crate::renderer::{mesh::Mesh, texture::Texture, transform::Transform, uniform::Uniform};
+use crate::gfx::{mesh::Mesh, texture::Texture, transform::Transform, uniform::Uniform};
 
 pub struct Model {
 	pub mesh: Mesh,

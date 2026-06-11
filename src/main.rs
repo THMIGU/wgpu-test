@@ -1,7 +1,7 @@
 // #![windows_subsystem = "windows"]
 
 mod fps;
-mod renderer;
+mod gfx;
 
 use glam::{Quat, Vec3};
 use sdl3::{event::Event, keyboard::Scancode};
@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 
 use crate::{
 	fps::FPS,
-	renderer::{camera::Camera, renderer::Renderer, scene::Scene},
+	gfx::{camera::Camera, renderer::Renderer, scene::Scene},
 };
 
 const TICK_RATE: f64 = 60_f64;
