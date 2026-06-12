@@ -1,15 +1,17 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::gfx::{
-	camera::Camera,
-	light::{LightType, LightUniform},
-	mesh::Mesh,
-	model::Model,
+use crate::{
+	gfx::{
+		camera::Camera,
+		light::{LightType, LightUniform},
+		mesh::Mesh,
+		model::Model,
+		texture::Texture,
+		transform::Transform,
+		uniform::Uniform,
+		vertex::Vertex,
+	},
 	scene::Scene,
-	texture::Texture,
-	transform::Transform,
-	uniform::Uniform,
-	vertex::Vertex,
 };
 
 use glam::{Mat4, Vec3};
@@ -342,13 +344,9 @@ impl Pipeline {
 			});
 			render_pass.set_pipeline(&self.render_pipeline);
 
-			match scene.lights[0] {
-				LightType::DirectionalLight(light) => self.queue.write_buffer(
-					&self.light_uniform_buffer,
-					0,
-					bytemuck::cast_slice(&[light]),
-				),
-			};
+			let LightType::DirectionalLight(light) = scene.lights[0];
+			self.queue
+				.write_buffer(&self.light_uniform_buffer, 0, bytemuck::cast_slice(&[light]));
 
 			render_pass.set_bind_group(0, &self.scene_bind_group, &[]);
 
@@ -377,7 +375,15 @@ impl Pipeline {
 					wgpu::IndexFormat::Uint32,
 				);
 
-				let uniform = Uniform::new(model.transform.matrix());
+				let mut model_matrix = model.transform.matrix();
+
+				if let Some(entity_handle) = model.entity_handle {
+					model_matrix = scene.entities[entity_handle as usize]
+						.transform
+						.matrix() * model_matrix;
+				}
+
+				let uniform = Uniform::new(model_matrix);
 
 				self.queue.write_buffer(
 					&model.model_uniform_buffer,

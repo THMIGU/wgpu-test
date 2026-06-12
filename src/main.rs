@@ -1,21 +1,24 @@
 // #![windows_subsystem = "windows"]
 
+mod entity;
 mod fps;
 mod gfx;
+mod scene;
 
 use glam::{Quat, Vec3};
 use sdl3::{event::Event, keyboard::Scancode};
 use std::time::{Duration, Instant};
 
 use crate::{
+	entity::Entity,
 	fps::FPS,
 	gfx::{
 		camera::Camera,
 		light::{LightType, LightUniform},
 		pipeline::Pipeline,
-		scene::Scene,
 		transform::{self, Transform},
 	},
+	scene::Scene,
 };
 
 const TICK_RATE: f64 = 60_f64;
@@ -67,6 +70,8 @@ fn main() {
 	let asphalt_model =
 		pipeline.create_model(asphalt_mesh.clone(), transform::IDENTITY, asphalt_texture.clone());
 
+	let car_entity = Entity::new(transform::IDENTITY);
+
 	let car_body_model = pipeline.create_model(
 		car_body_mesh.clone(),
 		Transform::new(Vec3::new(0_f32, 0.88, 0.15), Quat::IDENTITY, Vec3::ONE),
@@ -99,18 +104,24 @@ fn main() {
 		1_f32,
 	);
 
-	let mut scene = Scene::new(
-		vec![
-			skybox_model,
-			asphalt_model,
-			car_body_model,
-			car_tire_fl_model,
-			car_tire_fr_model,
-			car_tire_bl_model,
-			car_tire_br_model,
-		],
-		vec![LightType::DirectionalLight(sun)],
-	);
+	let mut scene = scene::EMPTY;
+
+	let car_entity_handle = scene.add_entity(car_entity);
+	scene.add_light(LightType::DirectionalLight(sun));
+	scene.add_models(vec![skybox_model, asphalt_model]);
+
+	let mut car_models = vec![
+		car_body_model,
+		car_tire_fl_model,
+		car_tire_fr_model,
+		car_tire_bl_model,
+		car_tire_br_model,
+	];
+
+	for model in &mut car_models {
+		model.entity_handle = Some(car_entity_handle);
+	}
+	scene.add_models(car_models);
 
 	let mut angle = 0_f32;
 
@@ -203,6 +214,15 @@ fn main() {
 				let tire = &mut scene.models[5 + i];
 				tire.transform.rotation = Quat::from_axis_angle(Vec3::X, angle.to_radians());
 			}
+
+			let car_entity = &mut scene.entities[car_entity_handle as usize];
+			car_entity.transform.rotation =
+				Quat::from_axis_angle(Vec3::Y, (angle / 10_f32).to_radians());
+			car_entity
+				.transform
+				.position
+				.y = (angle / 400_f32).sin() * 2_f32 + 2_f32;
+
 			angle += 10_f32;
 
 			pipeline.update_camera(&camera);
