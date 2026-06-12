@@ -47,47 +47,47 @@ fn main() {
 	let mut camera = Camera::new(FOV, aspect, 0.1, 1000_f32);
 	camera.position = Vec3::new(0_f32, 0_f32, 10_f32);
 
-	let mut pipepline = Pipeline::new(&window, true);
-	pipepline.update_camera(&camera);
+	let mut pipeline = Pipeline::new(&window, true);
+	pipeline.update_camera(&camera);
 
-	let skybox_texture = pipepline.load_texture("assets/textures/skybox.png");
-	let asphalt_texture = pipepline.load_texture("assets/textures/asphalt.png");
-	let car_texture = pipepline.load_texture("assets/textures/car2.png");
+	let skybox_texture = pipeline.load_texture("assets/textures/skybox.png");
+	let asphalt_texture = pipeline.load_texture("assets/textures/asphalt.png");
+	let car_texture = pipeline.load_texture("assets/textures/car2.png");
 
-	let skybox_mesh = pipepline.load_obj("assets/models/skybox.obj");
-	let asphalt_mesh = pipepline.load_obj("assets/models/plane.obj");
-	let car_body_mesh = pipepline.load_obj("assets/models/car/body.obj");
-	let car_tire_mesh = pipepline.load_obj("assets/models/car/tire.obj");
+	let skybox_mesh = pipeline.load_obj("assets/models/skybox.obj");
+	let asphalt_mesh = pipeline.load_obj("assets/models/plane.obj");
+	let car_body_mesh = pipeline.load_obj("assets/models/car/body.obj");
+	let car_tire_mesh = pipeline.load_obj("assets/models/car/tire.obj");
 
-	let skybox_model = pipepline.create_model(
+	let skybox_model = pipeline.create_model(
 		skybox_mesh.clone(),
 		Transform::new(Vec3::ZERO, Quat::IDENTITY, Vec3::splat(100_f32)),
 		skybox_texture.clone(),
 	);
 	let asphalt_model =
-		pipepline.create_model(asphalt_mesh.clone(), transform::IDENTITY, asphalt_texture.clone());
+		pipeline.create_model(asphalt_mesh.clone(), transform::IDENTITY, asphalt_texture.clone());
 
-	let car_body_model = pipepline.create_model(
+	let car_body_model = pipeline.create_model(
 		car_body_mesh.clone(),
 		Transform::new(Vec3::new(0_f32, 0.88, 0.15), Quat::IDENTITY, Vec3::ONE),
 		car_texture.clone(),
 	);
-	let car_tire_fl_model = pipepline.create_model(
+	let car_tire_fl_model = pipeline.create_model(
 		car_tire_mesh.clone(),
 		Transform::new(Vec3::new(0.98, 0.42, 1.84), Quat::IDENTITY, Vec3::ONE),
 		car_texture.clone(),
 	);
-	let car_tire_fr_model = pipepline.create_model(
+	let car_tire_fr_model = pipeline.create_model(
 		car_tire_mesh.clone(),
 		Transform::new(Vec3::new(-0.98, 0.42, 1.84), Quat::IDENTITY, Vec3::ONE),
 		car_texture.clone(),
 	);
-	let car_tire_bl_model = pipepline.create_model(
+	let car_tire_bl_model = pipeline.create_model(
 		car_tire_mesh.clone(),
 		Transform::new(Vec3::new(0.98, 0.42, -1.75), Quat::IDENTITY, Vec3::ONE),
 		car_texture.clone(),
 	);
-	let car_tire_br_model = pipepline.create_model(
+	let car_tire_br_model = pipeline.create_model(
 		car_tire_mesh.clone(),
 		Transform::new(Vec3::new(-0.98, 0.42, -1.75), Quat::IDENTITY, Vec3::ONE),
 		car_texture.clone(),
@@ -205,7 +205,7 @@ fn main() {
 			}
 			angle += 10_f32;
 
-			pipepline.update_camera(&camera);
+			pipeline.update_camera(&camera);
 
 			accumulator -= tick_time;
 		}
@@ -219,6 +219,6 @@ fn main() {
 			))
 			.unwrap();
 
-		pipepline.render_scene(&scene);
+		pipeline.render_scene(&scene);
 	}
 }
