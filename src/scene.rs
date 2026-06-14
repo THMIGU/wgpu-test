@@ -24,24 +24,27 @@ impl Scene {
 		}
 	}
 
-	pub fn add_entity(&mut self, entity: Entity) -> u32 {
+	pub fn add_entity(&mut self, entity: Entity) -> usize {
 		let handle = self.entities.len();
 		self.entities.push(entity);
 
-		handle as u32
+		handle
 	}
 
-	pub fn add_model(&mut self, model: Model) -> u32 {
+	pub fn add_model(&mut self, model: Model) -> usize {
 		let handle = self.models.len();
 		self.models.push(model);
 
-		handle as u32
+		handle
 	}
 
-	pub fn add_models(&mut self, models: Vec<Model>) {
+	pub fn add_models(&mut self, models: Vec<Model>) -> Vec<usize> {
+		let mut handles = vec![];
 		for model in models {
-			self.add_model(model);
+			handles.push(self.add_model(model));
 		}
+
+		handles
 	}
 
 	pub fn add_light(&mut self, light: LightType) -> u32 {

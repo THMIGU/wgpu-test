@@ -11,7 +11,7 @@ pub struct Model {
 	pub texture: Arc<Texture>,
 	pub model_uniform_buffer: wgpu::Buffer,
 	pub model_bind_group: wgpu::BindGroup,
-	pub entity_handle: Option<u32>,
+	pub entity_handle: Option<usize>,
 }
 
 impl Model {

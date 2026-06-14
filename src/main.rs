@@ -18,7 +18,6 @@ use crate::{
 		pipeline::Pipeline,
 		transform::{self, Transform},
 	},
-	scene::Scene,
 };
 
 const TICK_RATE: f64 = 60_f64;
@@ -37,10 +36,6 @@ fn main() {
 		.position_centered()
 		.build()
 		.unwrap();
-
-	sdl_context
-		.mouse()
-		.set_relative_mouse_mode(&window, true);
 
 	let mut event_pump = sdl_context
 		.event_pump()
@@ -67,12 +62,15 @@ fn main() {
 		Transform::new(Vec3::ZERO, Quat::IDENTITY, Vec3::splat(100_f32)),
 		skybox_texture.clone(),
 	);
-	let asphalt_model =
-		pipeline.create_model(asphalt_mesh.clone(), transform::IDENTITY, asphalt_texture.clone());
+	let asphalt_model = pipeline.create_model(
+		asphalt_mesh.clone(),
+		Transform::new(Vec3::ZERO, Quat::IDENTITY, Vec3::splat(2_f32)),
+		asphalt_texture.clone(),
+	);
 
 	let car_entity = Entity::new(transform::IDENTITY);
 
-	let car_body_model = pipeline.create_model(
+	let mut car_body_model = pipeline.create_model(
 		car_body_mesh.clone(),
 		Transform::new(Vec3::new(0_f32, 0.88, 0.15), Quat::IDENTITY, Vec3::ONE),
 		car_texture.clone(),
@@ -107,8 +105,10 @@ fn main() {
 	let mut scene = scene::EMPTY;
 
 	let car_entity_handle = scene.add_entity(car_entity);
+	let skybox_handle = scene.add_model(skybox_model);
+
 	scene.add_light(LightType::DirectionalLight(sun));
-	scene.add_models(vec![skybox_model, asphalt_model]);
+	scene.add_model(asphalt_model);
 
 	let mut car_models = vec![
 		car_body_model,
@@ -121,9 +121,21 @@ fn main() {
 	for model in &mut car_models {
 		model.entity_handle = Some(car_entity_handle);
 	}
-	scene.add_models(car_models);
+	let handles = scene.add_models(car_models);
 
-	let mut angle = 0_f32;
+	let [
+		car_body_handle,
+		car_tire_fl_handle,
+		car_tire_fr_handle,
+		car_tire_bl_handle,
+		car_tire_br_handle,
+	] = handles.as_slice()
+	else {
+		panic!("Could not unpack handles!")
+	};
+
+	let mut speed = 0_f32;
+	let mut spin = 0_f32;
 
 	let mut last_frame = Instant::now();
 	let mut accumulator = Duration::new(0, 0);
@@ -149,83 +161,85 @@ fn main() {
 		while accumulator >= tick_time {
 			let keyboard = event_pump.keyboard_state();
 
-			let camera_yaw = camera
-				.rotation
-				.to_euler(glam::EulerRot::YXZ)
-				.0;
+			let mut angle = 0_f32;
+			let mut acceleration = 0_f32;
 
-			let forward = Vec3::new(camera_yaw.sin(), 0_f32, camera_yaw.cos());
-			let right = Vec3::new(forward.z, 0_f32, -forward.x);
-			let up = Vec3::new(0_f32, 1_f32, 0_f32);
-			let speed = 7.5_f32 / 60_f32;
-
-			let mut movement = Vec3::ZERO;
-
-			if keyboard.is_scancode_pressed(Scancode::S) {
-				movement += forward;
-			}
 			if keyboard.is_scancode_pressed(Scancode::W) {
-				movement -= forward;
+				acceleration += 0.01_f32;
+			}
+			if keyboard.is_scancode_pressed(Scancode::S) {
+				acceleration -= 0.01_f32;
+			}
+
+			speed += acceleration;
+
+			if keyboard.is_scancode_pressed(Scancode::A) {
+				angle += 2.3 * (speed / 0.4);
 			}
 			if keyboard.is_scancode_pressed(Scancode::D) {
-				movement += right;
-			}
-			if keyboard.is_scancode_pressed(Scancode::A) {
-				movement -= right;
+				angle -= 2.3 * (speed / 0.4);
 			}
 
-			if keyboard.is_scancode_pressed(Scancode::Space) {
-				movement += up;
-			}
-			if keyboard.is_scancode_pressed(Scancode::LShift) {
-				movement -= up;
-			}
-
-			camera.position += movement.normalize_or_zero() * speed;
-
-			let mouse = event_pump.relative_mouse_state();
-
-			let x = mouse.x();
-			let y = mouse.y();
-
-			let sensitivity = 0.0025;
-
-			let yaw = Quat::from_rotation_y(-x as f32 * sensitivity);
-
-			let right = camera.rotation * Vec3::X;
-			let pitch = Quat::from_axis_angle(right.normalize(), -y as f32 * sensitivity);
-
-			camera.rotation = pitch * camera.rotation;
-			camera.rotation = yaw * camera.rotation;
-
-			if keyboard.is_scancode_pressed(Scancode::C) {
-				camera.fov = 30_f32.to_radians();
-			} else {
-				camera.fov = FOV;
-			}
-
-			for i in 0..2 {
-				let tire = &mut scene.models[3 + i];
-				tire.transform.rotation =
-					Quat::from_axis_angle(Vec3::Y, ((angle / 400_f32).sin() * 20_f32).to_radians())
-						* Quat::from_axis_angle(Vec3::X, angle.to_radians());
-			}
-			for i in 0..2 {
-				let tire = &mut scene.models[5 + i];
-				tire.transform.rotation = Quat::from_axis_angle(Vec3::X, angle.to_radians());
-			}
-
-			let car_entity = &mut scene.entities[car_entity_handle as usize];
-			car_entity.transform.rotation =
-				Quat::from_axis_angle(Vec3::Y, (angle / 10_f32).to_radians());
-			car_entity
+			let car_body = &mut scene.models[*car_body_handle];
+			let target = Quat::from_axis_angle(Vec3::Z, (angle * 3_f32).to_radians());
+			car_body.transform.rotation = car_body
 				.transform
-				.position
-				.y = (angle / 400_f32).sin() * 2_f32 + 2_f32;
+				.rotation
+				.slerp(target, 0.1);
 
-			angle += 10_f32;
+			let turn = Quat::from_axis_angle(Vec3::Y, (angle * 15_f32).to_radians());
+
+			spin += speed / 0.4 * 1_f32;
+			let angle_tire = Quat::from_axis_angle(Vec3::X, spin.to_radians());
+
+			let tire_fl = &mut scene.models[*car_tire_fl_handle];
+			let tire = tire_fl
+				.transform
+				.rotation
+				.slerp(turn, 0.1);
+			tire_fl.transform.rotation = tire * angle_tire;
+			let tire_fr = &mut scene.models[*car_tire_fr_handle];
+			let tire = tire_fr
+				.transform
+				.rotation
+				.slerp(turn, 0.1);
+			tire_fr.transform.rotation = tire * angle_tire;
+
+			let friction = 0.975;
+
+			let angle_delta = Quat::from_axis_angle(Vec3::Y, angle.to_radians());
+
+			let car_entity = &mut scene.entities[car_entity_handle];
+
+			car_entity.transform.rotation *= angle_delta;
+
+			let car_rotation = car_entity
+				.transform
+				.rotation
+				.normalize();
+			let forward = car_rotation * Vec3::Z;
+
+			car_entity.transform.position += forward * speed;
+
+			let target =
+				car_entity.transform.position + car_rotation * Vec3::new(0_f32, 5_f32, -6_f32);
+
+			camera.position = (camera
+				.position
+				.lerp(target, 0.05)
+				- car_entity.transform.position)
+				.normalize() * 61_f32.sqrt()
+				+ car_entity.transform.position;
+
+			let skybox = &mut scene.models[skybox_handle];
+			skybox.transform.position = camera.position;
+
+			camera.rotation =
+				Quat::look_at_rh(camera.position, car_entity.transform.position, Vec3::Y).inverse();
 
 			pipeline.update_camera(&camera);
+
+			speed *= friction;
 
 			accumulator -= tick_time;
 		}
