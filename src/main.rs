@@ -70,7 +70,7 @@ fn main() {
 
 	let car_entity = Entity::new(transform::IDENTITY);
 
-	let mut car_body_model = pipeline.create_model(
+	let car_body_model = pipeline.create_model(
 		car_body_mesh.clone(),
 		Transform::new(Vec3::new(0_f32, 0.88, 0.15), Quat::IDENTITY, Vec3::ONE),
 		car_texture.clone(),
@@ -136,6 +136,7 @@ fn main() {
 
 	let mut speed = 0_f32;
 	let mut spin = 0_f32;
+	let mut wheel_steer = Quat::IDENTITY;
 
 	let mut last_frame = Instant::now();
 	let mut accumulator = Duration::new(0, 0);
@@ -187,23 +188,35 @@ fn main() {
 				.rotation
 				.slerp(target, 0.1);
 
-			let turn = Quat::from_axis_angle(Vec3::Y, (angle * 15_f32).to_radians());
+			spin += (speed / 0.4) * 40_f32;
 
-			spin += speed / 0.4 * 1_f32;
-			let angle_tire = Quat::from_axis_angle(Vec3::X, spin.to_radians());
+			if spin > 360.0 {
+				spin -= 360.0;
+			} else if spin < -360.0 {
+				spin += 360.0;
+			}
 
-			let tire_fl = &mut scene.models[*car_tire_fl_handle];
-			let tire = tire_fl
+			let target_steer = Quat::from_axis_angle(Vec3::Y, (angle * 15.0).to_radians());
+
+			wheel_steer = wheel_steer.slerp(target_steer, 0.1);
+
+			let wheel_roll = Quat::from_axis_angle(Vec3::X, spin.to_radians());
+
+			let wheel_rotation = wheel_steer * wheel_roll;
+
+			scene.models[*car_tire_fl_handle]
 				.transform
-				.rotation
-				.slerp(turn, 0.1);
-			tire_fl.transform.rotation = tire * angle_tire;
-			let tire_fr = &mut scene.models[*car_tire_fr_handle];
-			let tire = tire_fr
+				.rotation = wheel_rotation;
+			scene.models[*car_tire_fr_handle]
 				.transform
-				.rotation
-				.slerp(turn, 0.1);
-			tire_fr.transform.rotation = tire * angle_tire;
+				.rotation = wheel_rotation;
+
+			scene.models[*car_tire_bl_handle]
+				.transform
+				.rotation = wheel_roll;
+			scene.models[*car_tire_br_handle]
+				.transform
+				.rotation = wheel_roll;
 
 			let friction = 0.975;
 
@@ -236,6 +249,8 @@ fn main() {
 
 			camera.rotation =
 				Quat::look_at_rh(camera.position, car_entity.transform.position, Vec3::Y).inverse();
+
+			camera.fov = (FOV.to_degrees() + (speed.abs() / 0.4) * 10_f32).to_radians();
 
 			pipeline.update_camera(&camera);
 
