@@ -15,6 +15,7 @@ use crate::{
 	gfx::{
 		camera::Camera,
 		light::{LightType, LightUniform},
+		material::{self, MaterialProperties},
 		pipeline::Pipeline,
 		transform::{self, Transform},
 	},
@@ -48,9 +49,15 @@ fn main() {
 	let mut pipeline = Pipeline::new(&window, true);
 	pipeline.update_camera(&camera);
 
-	let skybox_texture = pipeline.load_texture("assets/textures/skybox.png");
-	let asphalt_texture = pipeline.load_texture("assets/textures/asphalt.png");
-	let car_texture = pipeline.load_texture("assets/textures/car2.png");
+	let skybox_texture = pipeline.load_material(
+		"assets/textures/skybox.png",
+		MaterialProperties {
+			lit: 0,
+		},
+	);
+	let asphalt_texture =
+		pipeline.load_material("assets/textures/asphalt.png", material::DEFAULT_PROP);
+	let car_texture = pipeline.load_material("assets/textures/car2.png", material::DEFAULT_PROP);
 
 	let skybox_mesh = pipeline.load_obj("assets/models/skybox.obj");
 	let asphalt_mesh = pipeline.load_obj("assets/models/plane.obj");

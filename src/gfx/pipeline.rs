@@ -1,12 +1,12 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use crate::{
 	gfx::{
 		camera::Camera,
 		light::{LightType, LightUniform},
+		material::{Material, MaterialProperties},
 		mesh::Mesh,
 		model::Model,
-		texture::Texture,
 		transform::Transform,
 		uniform::Uniform,
 		vertex::Vertex,
@@ -31,7 +31,7 @@ pub struct Pipeline {
 	render_pipeline: wgpu::RenderPipeline,
 	view_uniform_buffer: wgpu::Buffer,
 	light_uniform_buffer: wgpu::Buffer,
-	texture_bind_group_layout: wgpu::BindGroupLayout,
+	material_bind_group_layout: wgpu::BindGroupLayout,
 	model_bind_group_layout: wgpu::BindGroupLayout,
 	scene_bind_group: wgpu::BindGroup,
 }
@@ -146,7 +146,7 @@ impl Pipeline {
 					},
 				],
 			});
-		let texture_bind_group_layout =
+		let material_bind_group_layout =
 			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
 				label: Some("Texture Bind Group Layout"),
 				entries: &[
@@ -166,6 +166,18 @@ impl Pipeline {
 						binding: 1,
 						visibility: wgpu::ShaderStages::FRAGMENT,
 						ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+						count: None,
+					},
+					wgpu::BindGroupLayoutEntry {
+						binding: 2,
+						visibility: wgpu::ShaderStages::FRAGMENT,
+						ty: wgpu::BindingType::Buffer {
+							ty: wgpu::BufferBindingType::Storage {
+								read_only: true,
+							},
+							has_dynamic_offset: false,
+							min_binding_size: None,
+						},
 						count: None,
 					},
 				],
@@ -213,7 +225,7 @@ impl Pipeline {
 			label: Some("Pipeline Layout"),
 			bind_group_layouts: &[
 				Some(&scene_bind_group_layout),
-				Some(&texture_bind_group_layout),
+				Some(&material_bind_group_layout),
 				Some(&model_bind_group_layout),
 			],
 			immediate_size: 0,
@@ -264,7 +276,7 @@ impl Pipeline {
 			render_pipeline,
 			view_uniform_buffer,
 			light_uniform_buffer,
-			texture_bind_group_layout,
+			material_bind_group_layout,
 			model_bind_group_layout,
 			scene_bind_group,
 		}
@@ -285,13 +297,19 @@ impl Pipeline {
 		&self,
 		mesh: Arc<Mesh>,
 		transform: Transform,
-		texture: Arc<Texture>,
+		texture: Arc<Material>,
 	) -> Model {
 		Model::new(mesh, transform, texture, &self.device, &self.model_bind_group_layout)
 	}
 
-	pub fn load_texture(&self, path: &str) -> Arc<Texture> {
-		Arc::new(Texture::new(path, &self.device, &self.queue, &self.texture_bind_group_layout))
+	pub fn load_material(&self, path: &str, properties: MaterialProperties) -> Arc<Material> {
+		Arc::new(Material::new(
+			path,
+			properties,
+			&self.device,
+			&self.queue,
+			&self.material_bind_group_layout,
+		))
 	}
 
 	pub fn render_scene(&mut self, scene: &Scene) {
@@ -355,7 +373,7 @@ impl Pipeline {
 					1,
 					&model
 						.texture
-						.texture_bind_group,
+						.material_bind_group,
 					&[],
 				);
 				render_pass.set_bind_group(2, &model.model_bind_group, &[]);
