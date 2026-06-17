@@ -8,6 +8,7 @@ struct VertexOutput {
 	@builtin(position) position: vec4<f32>,
 	@location(0) normal: vec3<f32>,
 	@location(1) uv: vec2<f32>,
+	@location(2) world_pos: vec3<f32>,
 };
 
 struct Uniform {
@@ -24,12 +25,15 @@ var<uniform> model_uniform: Uniform;
 fn vs_main(input: VertexInput) -> VertexOutput {
 	var out: VertexOutput;
 
-	out.position = view_uniform.mat * model_uniform.mat * vec4<f32>(
+	let world_pos = model_uniform.mat * vec4<f32>(
 		input.position,
 		1.0
 	);
+
+	out.position = view_uniform.mat * world_pos;
 	out.normal = (model_uniform.mat * vec4<f32>(input.normal, 0.0)).xyz;
 	out.uv = input.uv;
+	out.world_pos = world_pos.xyz;
 
 	return out;
 }

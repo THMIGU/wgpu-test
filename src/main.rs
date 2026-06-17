@@ -21,7 +21,7 @@ use crate::{
 	},
 };
 
-const TICK_RATE: f64 = 60_f64;
+const TICK_RATE: f64 = 120_f64;
 
 const WINDOW_WIDTH: u32 = 1280;
 const WINDOW_HEIGHT: u32 = 720;
@@ -106,7 +106,7 @@ fn main() {
 	let sun = LightUniform::new(
 		Vec3::new(-1.2, -0.5, 1_f32).normalize(),
 		Vec3::new(1_f32, 0.85, 0.54),
-		1_f32,
+		2_f32,
 	);
 
 	let mut scene = scene::EMPTY;
@@ -166,6 +166,8 @@ fn main() {
 			}
 		}
 
+		let tps_scale = 60_f32 / TICK_RATE as f32;
+
 		while accumulator >= tick_time {
 			let keyboard = event_pump.keyboard_state();
 
@@ -173,10 +175,10 @@ fn main() {
 			let mut acceleration = 0_f32;
 
 			if keyboard.is_scancode_pressed(Scancode::W) {
-				acceleration += 0.01_f32;
+				acceleration += 0.01_f32 * tps_scale;
 			}
 			if keyboard.is_scancode_pressed(Scancode::S) {
-				acceleration -= 0.01_f32;
+				acceleration -= 0.01_f32 * tps_scale;
 			}
 
 			speed += acceleration;
@@ -189,13 +191,13 @@ fn main() {
 			}
 
 			let car_body = &mut scene.models[*car_body_handle];
-			let target = Quat::from_axis_angle(Vec3::Z, (angle * 3_f32).to_radians());
+			let target = Quat::from_axis_angle(Vec3::Z, (angle * 3.0 * tps_scale).to_radians());
 			car_body.transform.rotation = car_body
 				.transform
 				.rotation
-				.slerp(target, 0.1);
+				.slerp(target, 0.1 * tps_scale);
 
-			spin += (speed / 0.4) * 40_f32;
+			spin += (speed / 0.4) * 40_f32 * tps_scale;
 
 			if spin > 360.0 {
 				spin -= 360.0;
@@ -203,12 +205,12 @@ fn main() {
 				spin += 360.0;
 			}
 
-			let target_steer = Quat::from_axis_angle(Vec3::Y, (angle * 15.0).to_radians());
+			let target_steer =
+				Quat::from_axis_angle(Vec3::Y, (angle * 15.0 * tps_scale).to_radians());
 
-			wheel_steer = wheel_steer.slerp(target_steer, 0.1);
+			wheel_steer = wheel_steer.slerp(target_steer, 0.1 * tps_scale);
 
 			let wheel_roll = Quat::from_axis_angle(Vec3::X, spin.to_radians());
-
 			let wheel_rotation = wheel_steer * wheel_roll;
 
 			scene.models[*car_tire_fl_handle]
@@ -225,9 +227,9 @@ fn main() {
 				.transform
 				.rotation = wheel_roll;
 
-			let friction = 0.975;
+			let friction = 0.975_f32.powf(tps_scale);
 
-			let angle_delta = Quat::from_axis_angle(Vec3::Y, angle.to_radians());
+			let angle_delta = Quat::from_axis_angle(Vec3::Y, angle.to_radians() * tps_scale);
 
 			let car_entity = &mut scene.entities[car_entity_handle];
 
@@ -239,14 +241,13 @@ fn main() {
 				.normalize();
 			let forward = car_rotation * Vec3::Z;
 
-			car_entity.transform.position += forward * speed;
+			car_entity.transform.position += forward * speed * tps_scale;
 
-			let target =
-				car_entity.transform.position + car_rotation * Vec3::new(0_f32, 5_f32, -6_f32);
+			let target = car_entity.transform.position + car_rotation * Vec3::new(0.0, 5.0, -6.0);
 
 			camera.position = (camera
 				.position
-				.lerp(target, 0.05)
+				.lerp(target, 0.05 * tps_scale)
 				- car_entity.transform.position)
 				.normalize() * 61_f32.sqrt()
 				+ car_entity.transform.position;
@@ -257,7 +258,7 @@ fn main() {
 			camera.rotation =
 				Quat::look_at_rh(camera.position, car_entity.transform.position, Vec3::Y).inverse();
 
-			camera.fov = (FOV.to_degrees() + (speed.abs() / 0.4) * 10_f32).to_radians();
+			camera.fov = (FOV.to_degrees() + (speed.abs() / 0.4) * 10.0 * tps_scale).to_radians();
 
 			pipeline.update_camera(&camera);
 

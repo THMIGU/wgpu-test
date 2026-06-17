@@ -2,6 +2,7 @@ struct VertexOutput {
 	@builtin(position) position: vec4<f32>,
 	@location(0) normal: vec3<f32>,
 	@location(1) uv: vec2<f32>,
+	@location(2) world_pos: vec3<f32>,
 };
 
 struct ViewUniform {
@@ -46,11 +47,18 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
 		let n = normalize(in.normal);
 		let l = normalize(direction);
+		let v = normalize(view_uniform.pos - in.world_pos);
+
+		let h = normalize(l + v);
+		let spec_strength = 8.0;
+		let spec = pow(max(dot(n, h), 0.0), spec_strength);
 
 		let diffuse = max(dot(n, l), 0.0);
 
 		let ambient = 0.2;
-		let lighting = min(intensity * diffuse + ambient, 1.0);
+
+		var lighting = ambient + diffuse * intensity + spec * intensity;
+		// lighting = min(lighting, 1.0);
 
 		let final_color = base_color.rgb * light_color * lighting;
 
