@@ -15,7 +15,7 @@ pub const DEFAULT_PROP: MaterialProperties = MaterialProperties {
 pub struct Material {
 	pub texture: wgpu::Texture,
 	pub sampler: wgpu::Sampler,
-	pub material_storage_buffer: wgpu::Buffer,
+	pub material_uniform_buffer: wgpu::Buffer,
 	pub material_bind_group: wgpu::BindGroup,
 }
 
@@ -72,15 +72,15 @@ impl Material {
 			size,
 		);
 
-		let material_storage_buffer =
+		let material_uniform_buffer =
 			device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-				label: Some("Material Storage Buffer"),
+				label: Some("Material Uniform Buffer"),
 				contents: bytemuck::cast_slice(&[properties]),
-				usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+				usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
 			});
 
 		let material_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-			label: Some("Texture Bind Group"),
+			label: Some("Material Bind Group"),
 			layout: material_bind_group_layout,
 			entries: &[
 				wgpu::BindGroupEntry {
@@ -93,7 +93,7 @@ impl Material {
 				},
 				wgpu::BindGroupEntry {
 					binding: 2,
-					resource: material_storage_buffer.as_entire_binding(),
+					resource: material_uniform_buffer.as_entire_binding(),
 				},
 			],
 		});
@@ -101,7 +101,7 @@ impl Material {
 		Self {
 			texture,
 			sampler,
-			material_storage_buffer,
+			material_uniform_buffer,
 			material_bind_group,
 		}
 	}

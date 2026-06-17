@@ -4,6 +4,11 @@ struct VertexOutput {
 	@location(1) uv: vec2<f32>,
 };
 
+struct ViewUniform {
+	mat: mat4x4<f32>,
+	pos: vec3<f32>,
+}
+
 struct LightUniform {
 	direction: vec3<f32>,
 	color: vec3<f32>,
@@ -14,6 +19,8 @@ struct MaterialProperties {
 	lit: u32
 }
 
+@group(0) @binding(0)
+var<uniform> view_uniform: ViewUniform;
 @group(0) @binding(1)
 var<uniform> light_uniform: LightUniform;
 
@@ -22,7 +29,7 @@ var diffuse_texture: texture_2d<f32>;
 @group(1) @binding(1)
 var diffuse_sampler: sampler;
 @group(1) @binding(2)
-var<storage> material_properties: MaterialProperties;
+var<uniform> material_properties: MaterialProperties;
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
@@ -33,13 +40,11 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 	);
 
 	if material_properties.lit == 1 {
-		let normal = in.normal;
-
 		let direction = -light_uniform.direction;
 		let light_color = light_uniform.color;
 		let intensity = light_uniform.intensity;
 
-		let n = normalize(normal);
+		let n = normalize(in.normal);
 		let l = normalize(direction);
 
 		let diffuse = max(dot(n, l), 0.0);

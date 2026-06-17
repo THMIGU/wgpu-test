@@ -1,3 +1,5 @@
+use std::mem::offset_of;
+
 use bytemuck::{Pod, Zeroable};
 use glam::{Vec2, Vec3};
 
@@ -24,17 +26,17 @@ impl Vertex {
 			step_mode: wgpu::VertexStepMode::Vertex,
 			attributes: &[
 				wgpu::VertexAttribute {
-					offset: 0,
+					offset: offset_of!(Vertex, position) as u64,
 					shader_location: 0,
 					format: wgpu::VertexFormat::Float32x3,
 				},
 				wgpu::VertexAttribute {
-					offset: 12,
+					offset: offset_of!(Vertex, normal) as u64,
 					shader_location: 1,
 					format: wgpu::VertexFormat::Float32x3,
 				},
 				wgpu::VertexAttribute {
-					offset: 24,
+					offset: offset_of!(Vertex, uv) as u64,
 					shader_location: 2,
 					format: wgpu::VertexFormat::Float32x2,
 				},

@@ -44,7 +44,7 @@ fn main() {
 
 	let aspect = WINDOW_WIDTH as f32 / WINDOW_HEIGHT as f32;
 	let mut camera = Camera::new(FOV, aspect, 0.1, 1000_f32);
-	camera.position = Vec3::new(0_f32, 0_f32, 10_f32);
+	camera.position = Vec3::new(0_f32, 5_f32, -6_f32);
 
 	let mut pipeline = Pipeline::new(&window, true);
 	pipeline.update_camera(&camera);

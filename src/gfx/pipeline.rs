@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
 	gfx::{
-		camera::Camera,
+		camera::{Camera, ViewUniform},
 		light::{LightType, LightUniform},
 		material::{Material, MaterialProperties},
 		mesh::Mesh,
@@ -111,7 +111,7 @@ impl Pipeline {
 
 		let view_uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
 			label: Some("View Uniform Buffer"),
-			contents: bytemuck::cast_slice(&[Uniform::new(Mat4::IDENTITY)]),
+			contents: bytemuck::cast_slice(&[ViewUniform::default()]),
 			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
 		});
 		let light_uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -126,7 +126,7 @@ impl Pipeline {
 				entries: &[
 					wgpu::BindGroupLayoutEntry {
 						binding: 0,
-						visibility: wgpu::ShaderStages::VERTEX,
+						visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
 						ty: wgpu::BindingType::Buffer {
 							ty: wgpu::BufferBindingType::Uniform,
 							has_dynamic_offset: false,
@@ -172,9 +172,7 @@ impl Pipeline {
 						binding: 2,
 						visibility: wgpu::ShaderStages::FRAGMENT,
 						ty: wgpu::BindingType::Buffer {
-							ty: wgpu::BufferBindingType::Storage {
-								read_only: true,
-							},
+							ty: wgpu::BufferBindingType::Uniform,
 							has_dynamic_offset: false,
 							min_binding_size: None,
 						},
@@ -283,10 +281,10 @@ impl Pipeline {
 	}
 
 	pub fn update_camera(&mut self, camera: &Camera) {
-		let uniform = Uniform::new(camera.view_proj_matrix());
+		let view = camera.view_proj_uniform();
 
 		self.queue
-			.write_buffer(&self.view_uniform_buffer, 0, bytemuck::cast_slice(&[uniform]));
+			.write_buffer(&self.view_uniform_buffer, 0, bytemuck::cast_slice(&[view]));
 	}
 
 	pub fn load_obj(&self, path: &str) -> Arc<Mesh> {
