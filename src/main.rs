@@ -23,8 +23,8 @@ use crate::{
 
 const TICK_RATE: f64 = 120_f64;
 
-const WINDOW_WIDTH: u32 = 1920;
-const WINDOW_HEIGHT: u32 = 1080;
+const WINDOW_WIDTH: u32 = 1280;
+const WINDOW_HEIGHT: u32 = 720;
 
 const FOV: f32 = 70_f32.to_radians();
 
