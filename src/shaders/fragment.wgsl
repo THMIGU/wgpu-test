@@ -17,7 +17,9 @@ struct LightUniform {
 }
 
 struct MaterialProperties {
-	lit: u32
+	lit: u32,
+	shininess: f32,
+	specular: f32,
 }
 
 @group(0) @binding(0)
@@ -50,17 +52,23 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 		let v = normalize(view_uniform.pos - in.world_pos);
 
 		let h = normalize(l + v);
-		let spec_strength = 8.0;
-		let spec = pow(max(dot(n, h), 0.0), spec_strength);
+
+		let shininess = material_properties.shininess;
+		let specular = material_properties.specular;
+		let spec = pow(max(dot(n, h), 0.0), shininess) * specular;
 
 		let diffuse = max(dot(n, l), 0.0);
 
-		let ambient = 0.2;
+		let ambient = 0.5;
 
-		var lighting = ambient + diffuse * intensity + spec * intensity;
-		// lighting = min(lighting, 1.0);
+		let diffuse_color =
+    		base_color.rgb * light_color *
+		    (ambient + diffuse * intensity);
 
-		let final_color = base_color.rgb * light_color * lighting;
+		let specular_color =
+		    light_color * spec * intensity;
+
+		let final_color = diffuse_color + specular_color;
 
 		return vec4<f32>(final_color, base_color.a);
 	} else {

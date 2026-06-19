@@ -23,8 +23,8 @@ use crate::{
 
 const TICK_RATE: f64 = 120_f64;
 
-const WINDOW_WIDTH: u32 = 1280;
-const WINDOW_HEIGHT: u32 = 720;
+const WINDOW_WIDTH: u32 = 1920;
+const WINDOW_HEIGHT: u32 = 1080;
 
 const FOV: f32 = 70_f32.to_radians();
 
@@ -53,11 +53,26 @@ fn main() {
 		"assets/textures/skybox.png",
 		MaterialProperties {
 			lit: 0,
+			shininess: 4_f32,
+			specular: 0_f32,
 		},
 	);
-	let asphalt_texture =
-		pipeline.load_material("assets/textures/asphalt.png", material::DEFAULT_PROP);
-	let car_texture = pipeline.load_material("assets/textures/car2.png", material::DEFAULT_PROP);
+	let asphalt_texture = pipeline.load_material(
+		"assets/textures/asphalt.png",
+		MaterialProperties {
+			lit: 1,
+			shininess: 4_f32,
+			specular: 0.01_f32,
+		},
+	);
+	let car_texture = pipeline.load_material(
+		"assets/textures/car2.png",
+		MaterialProperties {
+			lit: 1,
+			shininess: 64_f32,
+			specular: 0.05_f32,
+		},
+	);
 
 	let skybox_mesh = pipeline.load_obj("assets/models/skybox.obj");
 	let asphalt_mesh = pipeline.load_obj("assets/models/plane.obj");

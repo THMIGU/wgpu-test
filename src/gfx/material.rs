@@ -6,10 +6,14 @@ use wgpu::{Device, Queue, util::DeviceExt};
 #[derive(Clone, Copy, Pod, Zeroable)]
 pub struct MaterialProperties {
 	pub lit: u32,
+	pub shininess: f32,
+	pub specular: f32,
 }
 
 pub const DEFAULT_PROP: MaterialProperties = MaterialProperties {
 	lit: 1,
+	shininess: 8_f32,
+	specular: 0_f32,
 };
 
 pub struct Material {

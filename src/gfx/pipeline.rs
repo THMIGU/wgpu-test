@@ -317,7 +317,7 @@ impl Pipeline {
 		{
 			wgpu::CurrentSurfaceTexture::Success(frame)
 			| wgpu::CurrentSurfaceTexture::Suboptimal(frame) => frame,
-			_ => panic!("Surface error!"),
+			_ => return,
 		};
 
 		let view = frame
