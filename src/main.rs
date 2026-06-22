@@ -15,7 +15,7 @@ use crate::{
 	gfx::{
 		camera::Camera,
 		light::{LightType, LightUniform},
-		material::{self, MaterialProperties},
+		material::MaterialProperties,
 		pipeline::Pipeline,
 		transform::{self, Transform},
 	},
